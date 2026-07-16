@@ -1,0 +1,99 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 268 30% 8%;
+    --card: 0 0% 100%;
+    --card-foreground: 268 30% 8%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 268 30% 8%;
+    --primary: 271 76% 53%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 270 20% 96%;
+    --secondary-foreground: 268 30% 15%;
+    --muted: 270 20% 96%;
+    --muted-foreground: 268 10% 46%;
+    --accent: 270 40% 95%;
+    --accent-foreground: 271 76% 40%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 270 15% 91%;
+    --input: 270 15% 91%;
+    --ring: 271 76% 53%;
+    --radius: 0.625rem;
+    --sidebar: 270 14% 97%;
+    --sidebar-foreground: 268 10% 46%;
+    --sidebar-accent: 271 76% 96%;
+    --sidebar-accent-foreground: 271 76% 43%;
+    --sidebar-border: 270 13% 91%;
+  }
+
+  .dark {
+    --background: 268 40% 5%;
+    --foreground: 270 20% 96%;
+    --card: 268 35% 8%;
+    --card-foreground: 270 20% 96%;
+    --popover: 268 35% 8%;
+    --popover-foreground: 270 20% 96%;
+    --primary: 271 76% 63%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 268 25% 14%;
+    --secondary-foreground: 270 20% 92%;
+    --muted: 268 25% 14%;
+    --muted-foreground: 268 15% 62%;
+    --accent: 268 30% 16%;
+    --accent-foreground: 271 76% 74%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 270 20% 96%;
+    --border: 268 25% 16%;
+    --input: 268 25% 16%;
+    --ring: 271 76% 63%;
+    --sidebar: 268 40% 5%;
+    --sidebar-foreground: 268 15% 62%;
+    --sidebar-accent: 268 30% 12%;
+    --sidebar-accent-foreground: 271 76% 74%;
+    --sidebar-border: 268 25% 13%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.25);
+    border-radius: 3px;
+  }
+
+  /* Brand gradient text utility */
+  .text-brand-gradient {
+    background: linear-gradient(135deg, #C084FC 0%, #7C3AED 60%, #4C1D95 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}

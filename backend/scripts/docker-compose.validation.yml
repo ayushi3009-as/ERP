@@ -1,0 +1,21 @@
+version: "3.9"
+# Disposable Postgres for migration validation ONLY — separate port,
+# separate container name, no named volume (dies with `docker compose down -v`).
+# Does not touch the real microerp-postgres dev database in any way.
+services:
+  postgres-validation:
+    image: postgres:15-alpine
+    container_name: microerp-postgres-validation
+    environment:
+      POSTGRES_DB: microerp_validation
+      POSTGRES_USER: microerp
+      POSTGRES_PASSWORD: microerp
+    ports:
+      - "55432:5432"
+    tmpfs:
+      - /var/lib/postgresql/data  # RAM-backed, guarantees disposability
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U microerp -d microerp_validation"]
+      interval: 2s
+      timeout: 3s
+      retries: 20

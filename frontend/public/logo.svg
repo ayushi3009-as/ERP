@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <defs>
+    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#A56CF7"/>
+      <stop offset="100%" stop-color="#5A189A"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#B97BF8"/>
+      <stop offset="100%" stop-color="#6B21A8"/>
+    </linearGradient>
+    <linearGradient id="g3" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#7C3AED"/>
+      <stop offset="100%" stop-color="#C084FC"/>
+    </linearGradient>
+    <linearGradient id="g4" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#9333EA"/>
+      <stop offset="100%" stop-color="#4C1D95"/>
+    </linearGradient>
+    <linearGradient id="g5" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#A78BFA"/>
+      <stop offset="100%" stop-color="#6D28D9"/>
+    </linearGradient>
+  </defs>
+  <!-- Top hexagon (head) -->
+  <polygon points="100,18 120,30 120,54 100,66 80,54 80,30" fill="url(#g1)" rx="4"/>
+  <!-- Left arm hexagon -->
+  <polygon points="42,70 62,58 82,70 82,94 62,106 42,94" fill="url(#g2)" rx="4"/>
+  <!-- Right arm hexagon -->
+  <polygon points="118,70 138,58 158,70 158,94 138,106 118,94" fill="url(#g3)" rx="4"/>
+  <!-- Center torso hexagon -->
+  <polygon points="80,90 100,78 120,90 120,114 100,126 80,114" fill="url(#g4)" rx="4"/>
+  <!-- Bottom-left node -->
+  <polygon points="56,120 76,108 96,120 96,144 76,156 56,144" fill="url(#g5)" rx="4"/>
+  <!-- Microtechnique text -->
+  <text x="100" y="178" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="700" letter-spacing="2" fill="#4C1D95">MICROTECHNIQUE</text>
+  <text x="100" y="196" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" font-weight="500" letter-spacing="3" fill="#7C3AED">ERP</text>
+</svg>

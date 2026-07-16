@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <defs>
+    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#C084FC"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#A78BFA"/>
+      <stop offset="100%" stop-color="#6D28D9"/>
+    </linearGradient>
+    <linearGradient id="g3" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#8B5CF6"/>
+      <stop offset="100%" stop-color="#DDD6FE"/>
+    </linearGradient>
+  </defs>
+  <g stroke-linejoin="round">
+    <!-- Top hex -->
+    <path d="M60 8 L72 15 L72 29 L60 36 L48 29 L48 15 Z" fill="url(#g1)" stroke="url(#g1)" stroke-width="1"/>
+    <!-- Left hex -->
+    <path d="M30 38 L42 31 L54 38 L54 52 L42 59 L30 52 Z" fill="url(#g2)" stroke="url(#g2)" stroke-width="1"/>
+    <!-- Right hex -->
+    <path d="M66 38 L78 31 L90 38 L90 52 L78 59 L66 52 Z" fill="url(#g2)" stroke="url(#g2)" stroke-width="1"/>
+    <!-- Center hex -->
+    <path d="M48 55 L60 48 L72 55 L72 69 L60 76 L48 69 Z" fill="url(#g1)" stroke="url(#g1)" stroke-width="1"/>
+    <!-- Bottom-left hex -->
+    <path d="M30 68 L42 61 L54 68 L54 82 L42 89 L30 82 Z" fill="url(#g3)" stroke="url(#g3)" stroke-width="1"/>
+  </g>
+</svg>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#7C3AED" />
+    <meta name="description" content="Microtechnique ERP — Garments Manufacturing Management. Production, Inventory, Purchase, Sales, Payroll, HR & Accounting in one platform." />
+    <meta name="application-name" content="Microtechnique ERP" />
+    <meta name="apple-mobile-web-app-title" content="Microtechnique" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <meta property="og:title" content="Microtechnique ERP — Garments Manufacturing" />
+    <meta property="og:description" content="One ERP. Every Department. Complete Manufacturing Control." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Microtechnique ERP" />
+    <meta name="twitter:description" content="One ERP. Every Department. Complete Manufacturing Control." />
+    <title>Microtechnique ERP — Garments Manufacturing</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+      /* Loading screen — no JS flash */
+      #mt-loader {
+        position: fixed; inset: 0; z-index: 9999;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        background: linear-gradient(135deg, #0f0520 0%, #1a0a3e 40%, #0f0520 100%);
+        transition: opacity .4s ease;
+      }
+      #mt-loader.fade-out { opacity: 0; pointer-events: none; }
+      #mt-loader svg { animation: mt-pulse 1.8s ease-in-out infinite; }
+      #mt-loader .mt-label {
+        margin-top: 24px;
+        font-family: Inter, system-ui, sans-serif;
+        font-weight: 700; font-size: 18px; letter-spacing: .12em;
+        color: #C084FC;
+        animation: mt-fadein 1s ease forwards;
+      }
+      #mt-loader .mt-sub {
+        margin-top: 6px;
+        font-family: Inter, system-ui, sans-serif;
+        font-weight: 500; font-size: 11px; letter-spacing: .2em; text-transform: uppercase;
+        color: #7C3AED;
+        animation: mt-fadein 1.4s ease forwards;
+      }
+      @keyframes mt-pulse {
+        0%, 100% { transform: scale(1); opacity: .9; }
+        50% { transform: scale(1.08); opacity: 1; }
+      }
+      @keyframes mt-fadein {
+        from { opacity: 0; transform: translateY(6px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Loading screen — removed by React after mount -->
+    <div id="mt-loader">
+      <svg width="64" height="64" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="ld-g1" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#C084FC"/><stop offset="100%" stop-color="#7C3AED"/>
+          </linearGradient>
+          <linearGradient id="ld-g2" x1="100%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#A78BFA"/><stop offset="100%" stop-color="#6D28D9"/>
+          </linearGradient>
+          <linearGradient id="ld-g3" x1="0%" y1="100%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#8B5CF6"/><stop offset="100%" stop-color="#DDD6FE"/>
+          </linearGradient>
+        </defs>
+        <g stroke-linejoin="round">
+          <path d="M60 8 L72 15 L72 29 L60 36 L48 29 L48 15 Z" fill="url(#ld-g1)" stroke="url(#ld-g1)" stroke-width="1"/>
+          <path d="M30 38 L42 31 L54 38 L54 52 L42 59 L30 52 Z" fill="url(#ld-g2)" stroke="url(#ld-g2)" stroke-width="1"/>
+          <path d="M66 38 L78 31 L90 38 L90 52 L78 59 L66 52 Z" fill="url(#ld-g2)" stroke="url(#ld-g2)" stroke-width="1"/>
+          <path d="M48 55 L60 48 L72 55 L72 69 L60 76 L48 69 Z" fill="url(#ld-g1)" stroke="url(#ld-g1)" stroke-width="1"/>
+          <path d="M30 68 L42 61 L54 68 L54 82 L42 89 L30 82 Z" fill="url(#ld-g3)" stroke="url(#ld-g3)" stroke-width="1"/>
+        </g>
+      </svg>
+      <div class="mt-label">MICROTECHNIQUE</div>
+      <div class="mt-sub">ERP</div>
+    </div>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Remove loader once React mounts
+      window.addEventListener('DOMContentLoaded', () => {
+        const obs = new MutationObserver(() => {
+          const loader = document.getElementById('mt-loader');
+          if (loader && document.getElementById('root')?.children.length) {
+            loader.classList.add('fade-out');
+            setTimeout(() => loader.remove(), 500);
+            obs.disconnect();
+          }
+        });
+        obs.observe(document.getElementById('root'), { childList: true });
+      });
+    </script>
+  </body>
+</html>

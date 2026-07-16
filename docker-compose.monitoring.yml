@@ -1,0 +1,63 @@
+# Optional monitoring stack -- Prometheus + Grafana, addressing the gap
+# confirmed in PRODUCTION_READINESS_REPORT.md Section 12 ("no metrics
+# exporter, no dashboard for infrastructure metrics").
+#
+# Usage (run alongside the main stack, not instead of it):
+#   docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
+#
+# Requires the backend's /metrics endpoint to be enabled, which requires
+# `prometheus-fastapi-instrumentator` to be installed (see
+# backend/requirements.txt) -- neither installed nor scraped in this
+# sandbox (no network). This is real, correct wiring, untested against a
+# live Prometheus/Grafana pair, same disclosure as everything else this
+# session built without a live environment available.
+
+version: "3.9"
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: microerp-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - microerp-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: microerp-grafana
+    restart: unless-stopped
+    environment:
+      # Real default admin password -- change this before any real
+      # deployment; not doing so is the same class of mistake as the
+      # SECRET_KEY issue found and fixed in main.py.
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set}
+    volumes:
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - microerp-network
+
+volumes:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  microerp-network:
+    driver: bridge
+    # No `external: true` here -- when run as
+    # `docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up`,
+    # Compose merges both files into one project and reuses the network
+    # already declared in the base file by matching this same key name.
+    # An `external: true` + guessed project-name reference (my first draft
+    # of this file) is fragile -- it depends on the Compose project name,
+    # which defaults to the directory name and isn't guaranteed to be
+    # "micro-erp". Caught and fixed before this shipped.
+
