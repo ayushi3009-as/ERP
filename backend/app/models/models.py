@@ -176,11 +176,11 @@ class ProductionLine(FactoryScopedMixin, Base):
     code = Column(String(20), nullable=True)
     line_type = Column(String(50), nullable=True)  # cutting, stitching, finishing, mixed
     capacity_per_day = Column(Integer, default=0)
-    supervisor_id = Column(Integer, ForeignKey("employees.id"), nullable=True)
+    supervisor_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     is_active_line = Column(Boolean, default=True)
 
     factory = relationship("Factory", back_populates="production_lines")
-    supervisor = relationship("Employee", foreign_keys=[supervisor_id])
+    supervisor = relationship("User", foreign_keys=[supervisor_id])
 
 
 # ==================== AUTH & USERS ====================
@@ -226,7 +226,6 @@ class UserSession(TimestampMixin, Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     refresh_token = Column(Text, nullable=False)
-    device_id = Column(Integer, ForeignKey("mobile_devices.id"), nullable=True)  # null = non-mobile (web) session
     ip_address = Column(String(45), nullable=True)
     user_agent = Column(String(500), nullable=True)
     expires_at = Column(DateTime(timezone=True), nullable=False)

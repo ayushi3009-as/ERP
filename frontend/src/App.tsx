@@ -10,6 +10,8 @@ import DashboardPage from '@/pages/dashboard/DashboardPage';
 import MastersListPage from '@/pages/masters/MastersListPage';
 import EmployeesPage from '@/pages/masters/EmployeesPage';
 import ProductsPage from '@/pages/masters/ProductsPage';
+import LotsPage from '@/pages/production/LotsPage';
+import ScannerPage from '@/pages/production/ScannerPage';
 import AttendancePage from '@/pages/payroll/AttendancePage';
 import ReportsPage from '@/pages/reports/ReportsPage';
 import CompanySettingsPage from '@/pages/settings/CompanySettingsPage';
@@ -83,8 +85,8 @@ export default function App() {
       <Route path="/masters/sizes" element={<ProtectedRoute><AppLayout><MastersListPage /></AppLayout></ProtectedRoute>} />
 
       {/* Production */}
-      <Route path="/production/lots" element={<ProtectedRoute><AppLayout><Placeholder title="Lot Management" /></AppLayout></ProtectedRoute>} />
-      <Route path="/production/scanner" element={<ProtectedRoute><AppLayout><Placeholder title="Barcode Scanner" /></AppLayout></ProtectedRoute>} />
+      <Route path="/production/lots" element={<ProtectedRoute><AppLayout><LotsPage /></AppLayout></ProtectedRoute>} />
+      <Route path="/production/scanner" element={<ProtectedRoute><AppLayout><ScannerPage /></AppLayout></ProtectedRoute>} />
       <Route path="/production/tracking" element={<ProtectedRoute><AppLayout><Placeholder title="Process Tracking" /></AppLayout></ProtectedRoute>} />
 
       {/* Payroll */}
