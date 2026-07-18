@@ -37,7 +37,7 @@ export default function ScannerPage() {
 
     try {
       setIsScanning(true);
-      const { data } = await api.post('/production/scan', {
+      const { data } = await api.post('/v1/production/scan', {
         barcode: barcode.trim()
       });
       setLastScan(data);

@@ -434,7 +434,7 @@ export default function JobWorkPage() {
               <p className="text-xs text-muted-foreground">Please try again later</p>
             </div>
           ) : (
-            <DataTable columns={columns} data={data?.data || []} loading={isLoading} emptyMessage="No job work orders found. Create your first order to get started." pageSize={20} />
+            <DataTable columns={columns} data={data?.items || []} loading={isLoading} emptyMessage="No job work orders found. Create your first order to get started." pageSize={20} />
           )}
         </CardContent>
       </Card>

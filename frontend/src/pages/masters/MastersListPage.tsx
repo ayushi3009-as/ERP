@@ -21,6 +21,7 @@ import {
   PenTool,
   Sun,
   Scale,
+  Wrench,
 } from 'lucide-react';
 import {
   Button,
@@ -70,170 +71,40 @@ const MASTER_CONFIGS: Record<string, MasterConfig> = {
       { key: 'description', label: 'Description', placeholder: 'Description' },
     ],
   },
-  brands: {
-    title: 'Brands',
-    icon: Tag,
-    apiPath: '/v1/brands',
-    columns: [
-      { key: 'name', label: 'Name' },
-      { key: 'description', label: 'Description' },
-    ],
-    formFields: [
-      { key: 'name', label: 'Name', placeholder: 'Brand name', required: true },
-      { key: 'description', label: 'Description', placeholder: 'Description' },
-    ],
-  },
-  styles: {
-    title: 'Styles',
-    icon: Shirt,
-    apiPath: '/v1/styles',
-    columns: [
-      { key: 'name', label: 'Name' },
-      { key: 'description', label: 'Description' },
-      { key: 'category_name', label: 'Category' },
-    ],
-    formFields: [
-      { key: 'name', label: 'Name', placeholder: 'Style name', required: true },
-      { key: 'description', label: 'Description', placeholder: 'Description' },
-    ],
-  },
-  designs: {
-    title: 'Designs',
-    icon: PenTool,
-    apiPath: '/v1/designs',
-    columns: [
-      { key: 'name', label: 'Name' },
-      { key: 'description', label: 'Description' },
-      { key: 'style_name', label: 'Style' },
-    ],
-    formFields: [
-      { key: 'name', label: 'Name', placeholder: 'Design name', required: true },
-      { key: 'description', label: 'Description', placeholder: 'Description' },
-    ],
-  },
-  seasons: {
-    title: 'Seasons',
-    icon: Sun,
-    apiPath: '/v1/seasons',
-    columns: [
-      { key: 'name', label: 'Name' },
-      { key: 'start_date', label: 'Start Date', type: 'date' },
-      { key: 'end_date', label: 'End Date', type: 'date' },
-    ],
-    formFields: [
-      { key: 'name', label: 'Name', placeholder: 'Season name', required: true },
-      { key: 'start_date', label: 'Start Date', type: 'date' },
-      { key: 'end_date', label: 'End Date', type: 'date' },
-    ],
-  },
   fabrics: {
     title: 'Fabrics',
     icon: Package,
     apiPath: '/v1/fabrics',
     columns: [
       { key: 'name', label: 'Name' },
-      { key: 'composition', label: 'Composition' },
+      { key: 'fabric_type', label: 'Fabric Type' },
       { key: 'gsm', label: 'GSM' },
-      { key: 'width', label: 'Width' },
-      { key: 'cost_per_unit', label: 'Cost/Unit', type: 'currency' },
+      { key: 'composition', label: 'Composition' },
+      { key: 'color', label: 'Color' },
     ],
     formFields: [
-      { key: 'name', label: 'Name', placeholder: 'Fabric name', required: true },
-      { key: 'composition', label: 'Composition', placeholder: 'e.g. 100% Cotton' },
-      { key: 'gsm', label: 'GSM', type: 'number', placeholder: 'GSM' },
-      { key: 'width', label: 'Width', type: 'number', placeholder: 'Width in inches' },
-      { key: 'cost_per_unit', label: 'Cost Per Unit', type: 'number', placeholder: '0.00' },
+      { key: 'name', label: 'Name', placeholder: 'Fabric name (e.g., Summer Cotton)', required: true },
+      { key: 'fabric_type', label: 'Fabric Type', placeholder: 'e.g., Single Jersey' },
+      { key: 'gsm', label: 'GSM', placeholder: 'GSM' },
+      { key: 'composition', label: 'Composition', placeholder: 'e.g., 100% Cotton' },
+      { key: 'color', label: 'Color', placeholder: 'e.g., Navy Blue' },
     ],
   },
-  colors: {
-    title: 'Colors',
-    icon: Palette,
-    apiPath: '/v1/colors',
+  services: {
+    title: 'Services',
+    icon: Wrench,
+    apiPath: '/v1/services',
     columns: [
       { key: 'name', label: 'Name' },
-      { key: 'hex_code', label: 'Hex Code', type: 'color_swatch' },
-      { key: 'pantone_ref', label: 'Pantone Ref' },
+      { key: 'process', label: 'Process' },
+      { key: 'rate', label: 'Rate (₹)' },
+      { key: 'remarks', label: 'Remarks' },
     ],
     formFields: [
-      { key: 'name', label: 'Name', placeholder: 'Color name', required: true },
-      { key: 'hex_code', label: 'Hex Code', placeholder: '#FF0000' },
-      { key: 'pantone_ref', label: 'Pantone Reference', placeholder: 'Pantone code' },
-    ],
-  },
-  sizes: {
-    title: 'Sizes',
-    icon: Ruler,
-    apiPath: '/v1/sizes',
-    columns: [
-      { key: 'name', label: 'Name' },
-      { key: 'size_group', label: 'Size Group' },
-      { key: 'sort_order', label: 'Sort Order' },
-    ],
-    formFields: [
-      { key: 'name', label: 'Name', placeholder: 'Size name (e.g. S, M, L)', required: true },
-      { key: 'size_group', label: 'Size Group', placeholder: 'e.g. Standard, Kids' },
-      { key: 'sort_order', label: 'Sort Order', type: 'number', placeholder: '0' },
-    ],
-  },
-  units: {
-    title: 'Units',
-    icon: Scale,
-    apiPath: '/v1/units',
-    columns: [
-      { key: 'name', label: 'Name' },
-      { key: 'abbreviation', label: 'Abbreviation' },
-      { key: 'unit_type', label: 'Type' },
-    ],
-    formFields: [
-      { key: 'name', label: 'Name', placeholder: 'Unit name', required: true },
-      { key: 'abbreviation', label: 'Abbreviation', placeholder: 'e.g. Pcs, Kg, Mtr', required: true },
-      {
-        key: 'unit_type',
-        label: 'Type',
-        options: ['count', 'weight', 'length', 'area', 'volume'],
-      },
-    ],
-  },
-  warehouses: {
-    title: 'Warehouses',
-    icon: Warehouse,
-    apiPath: '/v1/warehouses',
-    columns: [
-      { key: 'name', label: 'Name' },
-      { key: 'address', label: 'Address' },
-      { key: 'city', label: 'City' },
-      { key: 'state', label: 'State' },
-    ],
-    formFields: [
-      { key: 'name', label: 'Name', placeholder: 'Warehouse name', required: true },
-      { key: 'address', label: 'Address', placeholder: 'Full address' },
-      { key: 'city', label: 'City', placeholder: 'City' },
-      { key: 'state', label: 'State', placeholder: 'State' },
-    ],
-  },
-  machines: {
-    title: 'Machines',
-    icon: Cog,
-    apiPath: '/v1/machines',
-    columns: [
-      { key: 'name', label: 'Name' },
-      { key: 'machine_type', label: 'Type' },
-      { key: 'model', label: 'Model' },
-      { key: 'serial_number', label: 'Serial No.' },
-      { key: 'capacity', label: 'Capacity' },
-      { key: 'status', label: 'Status', type: 'status_badge' },
-    ],
-    formFields: [
-      { key: 'name', label: 'Name', placeholder: 'Machine name', required: true },
-      { key: 'machine_type', label: 'Type', placeholder: 'e.g. Sewing, Cutting' },
-      { key: 'model', label: 'Model', placeholder: 'Model number' },
-      { key: 'serial_number', label: 'Serial Number', placeholder: 'Serial number' },
-      { key: 'capacity', label: 'Capacity', placeholder: 'e.g. 500 pcs/day' },
-      {
-        key: 'status',
-        label: 'Status',
-        options: ['idle', 'running', 'maintenance', 'broken'],
-      },
+      { key: 'name', label: 'Service Name', placeholder: 'e.g. Embroidery', required: true },
+      { key: 'process', label: 'Process', placeholder: 'e.g. Stitching', required: true },
+      { key: 'rate', label: 'Rate (₹)', type: 'number', placeholder: '0.00' },
+      { key: 'remarks', label: 'Remarks', placeholder: 'Any remarks' },
     ],
   },
 };
@@ -277,6 +148,7 @@ function MasterListContent({ config, type }: { config: MasterConfig; type: strin
       schemaObj[f.key] = z.string();
     }
   });
+  schemaObj['is_active'] = z.boolean().optional();
   const formSchema = z.object(schemaObj);
   type FormData = z.infer<typeof formSchema>;
 
@@ -325,7 +197,9 @@ function MasterListContent({ config, type }: { config: MasterConfig; type: strin
     },
   });
 
-  const defaultValues: Record<string, unknown> = {};
+  const defaultValues: Record<string, unknown> = {
+    is_active: true
+  };
   config.formFields.forEach((f) => {
     if (f.type === 'number') defaultValues[f.key] = 0;
     else defaultValues[f.key] = '';
@@ -355,7 +229,9 @@ function MasterListContent({ config, type }: { config: MasterConfig; type: strin
 
   function openEdit(item: Record<string, unknown>) {
     setEditingItem(item);
-    const values: Record<string, unknown> = {};
+    const values: Record<string, unknown> = {
+      is_active: item['is_active'] ?? true
+    };
     config.formFields.forEach((f) => {
       values[f.key] = item[f.key] ?? (f.type === 'number' ? 0 : '');
     });
@@ -514,7 +390,7 @@ function MasterListContent({ config, type }: { config: MasterConfig; type: strin
           ) : (
             <DataTable
               columns={columns}
-              data={data?.data || []}
+              data={data?.items || []}
               loading={isLoading}
               emptyMessage={`No ${config.title.toLowerCase()} found. Add your first entry to get started.`}
               pageSize={20}
@@ -527,14 +403,14 @@ function MasterListContent({ config, type }: { config: MasterConfig; type: strin
         setDialogOpen(open);
         if (!open) resetForm();
       }}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingItem ? 'Edit' : 'Add New'} {config.title.slice(0, -1) || config.title}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-4">
               {config.formFields.map((field) => {
                 if (field.options) {
                   const currentVal = watch(field.key) as string;
@@ -573,6 +449,21 @@ function MasterListContent({ config, type }: { config: MasterConfig; type: strin
                   />
                 );
               })}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Status</label>
+                <Select
+                  value={watch('is_active') === false ? 'inactive' : 'active'}
+                  onValueChange={(v) => setValue('is_active', v === 'active' ? true : false)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <DialogFooter>
               <Button

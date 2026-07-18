@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
+import { useAuthStore } from '@/store/authStore';
 import Logo from '@/components/ui/Logo';
 import {
   LayoutDashboard,
@@ -21,6 +22,8 @@ import {
   Barcode,
   ScanLine,
   FileBarChart,
+  Banknote,
+  Wrench,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -45,6 +48,12 @@ const navigation: NavSection[] = [
     ],
   },
   {
+    title: 'Super Admin',
+    items: [
+      { label: 'SaaS Tenants', to: '/super-admin/dashboard', icon: Shield },
+    ],
+  },
+  {
     title: 'Masters',
     items: [
       { label: 'Employees', to: '/masters/employees', icon: UserCheck },
@@ -52,7 +61,7 @@ const navigation: NavSection[] = [
       { label: 'Categories', to: '/masters/categories', icon: Layers },
       { label: 'Designs', to: '/masters/designs', icon: Palette },
       { label: 'Fabrics', to: '/masters/fabrics', icon: Boxes },
-      { label: 'Sizes', to: '/masters/sizes', icon: Ruler },
+      { label: 'Services', to: '/masters/services', icon: Wrench },
     ],
   },
   {
@@ -67,6 +76,7 @@ const navigation: NavSection[] = [
     title: 'Payroll',
     items: [
       { label: 'Attendance', to: '/payroll/attendance', icon: UserCheck },
+      { label: 'Internal Payments', to: '/payroll/payments', icon: Banknote },
     ],
   },
   {
@@ -92,9 +102,18 @@ interface SidebarProps {
 }
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
+  const user = useAuthStore((s) => s.user);
+  const isSuperAdmin = user?.role === 'super_admin';
+  const filteredNavigation = navigation.filter(section => {
+    if (isSuperAdmin) {
+      return section.title === 'Super Admin';
+    }
+    return section.title !== 'Super Admin';
+  });
+
   const [expandedSections, setExpandedSections] = React.useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
-    navigation.forEach((section) => {
+    filteredNavigation.forEach((section) => {
       initial[section.title] = true;
     });
     return initial;
@@ -149,7 +168,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       </div>
 
       <nav className="flex-1 overflow-y-auto scrollbar-thin p-2">
-        {navigation.map((section) => {
+        {filteredNavigation.map((section, idx) => {
           const isExpanded = expandedSections[section.title] ?? true;
           const active = isSectionActive(section);
 

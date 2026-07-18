@@ -1,510 +1,337 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useParams } from 'react-router-dom';
-import {
-  AlertCircle,
-  ArrowLeft,
-  ChevronRight,
-  CheckCircle2,
-  Circle,
-  Clock,
-  Package,
-  Users,
-  Settings,
-  Factory,
-  BarChart3,
-  PackageOpen,
-} from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Activity, Calendar, User, ArrowRight, ClipboardList, CheckCircle2 } from 'lucide-react';
+import api from '@/lib/api';
 import {
   Button,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
+  DataTable,
   Badge,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from '@/components/ui';
-import { cn, formatDate } from '@/lib/utils';
-import api from '@/lib/api';
+import type { ColumnDef } from '@/components/ui';
+
+interface Lot {
+  id: number;
+  lot_number: string;
+  barcode: string;
+  design_id: number;
+  design_number?: string;
+  product_id: number;
+  product_name?: string;
+  size: string;
+  quantity: number;
+  current_process: string;
+  created_at: string;
+}
+
+interface ActivityLog {
+  id: number;
+  barcode: string;
+  scan_type: string;
+  process_stage: string;
+  remarks: string;
+  created_at: string;
+  scanned_by_name: string;
+}
 
 const STAGES = [
-  'Planning',
-  'Cutting',
-  'Bundle',
-  'Printing',
-  'Embroidery',
-  'Stitching',
-  'Checking',
-  'Ironing',
-  'Packing',
-  'Finished',
-  'Dispatch',
-] as const;
+  'planning',
+  'cutting',
+  'bundle',
+  'printing',
+  'embroidery',
+  'stitching',
+  'checking',
+  'ironing',
+  'packing',
+  'finished',
+  'dispatch',
+];
 
-type Stage = (typeof STAGES)[number];
-
-interface ProductionOrderDetail {
-  id: string;
-  order_number: string;
-  date: string;
-  product_id: string;
-  product_name?: string;
-  style_name?: string;
-  planned_quantity: number;
-  produced_quantity: number;
-  rejected_quantity: number;
-  completed_qty?: number;
-  status: string;
-  current_stage?: string;
-  priority?: string;
-  start_date?: string;
-  end_date?: string;
-  bom_id?: string;
-  sales_order_id?: string;
-  remarks?: string;
-  stage_details: StageDetail[];
-  bundles: BundleInfo[];
-}
-
-interface StageDetail {
-  stage: string;
-  input_qty: number;
-  output_qty: number;
-  rejected_qty: number;
-  operator_name?: string;
-  machine_name?: string;
-  started_at?: string;
-  completed_at?: string;
-  remarks?: string;
-  bundles: BundleInfo[];
-}
-
-interface BundleInfo {
-  id: string;
-  bundle_number: string;
-  color_name?: string;
-  size_name?: string;
-  quantity: number;
-  status: string;
-  current_stage?: string;
-}
-
-const stageVariant = (stage: string | undefined) => {
-  switch (stage) {
-    case 'Planning': return 'secondary' as const;
-    case 'Cutting': return 'outline' as const;
-    case 'Bundle': return 'outline' as const;
-    case 'Printing': return 'default' as const;
-    case 'Embroidery': return 'default' as const;
-    case 'Stitching': return 'warning' as const;
-    case 'Checking': return 'warning' as const;
-    case 'Ironing': return 'secondary' as const;
-    case 'Packing': return 'success' as const;
-    case 'Finished': return 'success' as const;
-    case 'Dispatch': return 'success' as const;
-    default: return 'outline' as const;
-  }
-};
-
-const statusVariant = (status: string) => {
-  switch (status) {
-    case 'planned': return 'secondary' as const;
-    case 'in_progress': return 'warning' as const;
-    case 'completed': return 'success' as const;
-    case 'on_hold': return 'outline' as const;
-    case 'cancelled': return 'destructive' as const;
-    default: return 'outline' as const;
-  }
+const STAGE_PROGRESS: Record<string, number> = {
+  planning: 10,
+  cutting: 20,
+  bundle: 30,
+  printing: 40,
+  embroidery: 50,
+  stitching: 60,
+  checking: 70,
+  ironing: 80,
+  packing: 90,
+  finished: 95,
+  dispatch: 100,
 };
 
 export default function ProductionTrackingPage() {
-  const { id } = useParams<{ id: string }>();
-  const [expandedStage, setExpandedStage] = useState<string | null>(null);
+  const [lots, setLots] = useState<Lot[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedStage, setSelectedStage] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
 
-  const { data: order, isLoading, isError } = useQuery({
-    queryKey: ['production-order-detail', id],
-    queryFn: async () => {
-      const { data } = await api.get<ProductionOrderDetail>(`/v1/production-orders/${id}`);
-      return data;
-    },
-    enabled: !!id,
+  // Activity States
+  const [activityLot, setActivityLot] = useState<Lot | null>(null);
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
+  const [loadingActivity, setLoadingActivity] = useState(false);
+  const [activityDialogOpen, setActivityDialogOpen] = useState(false);
+
+  useEffect(() => {
+    fetchLots();
+  }, []);
+
+  const fetchLots = async () => {
+    try {
+      setLoading(true);
+      const { data } = await api.get('/v1/lots');
+      setLots(data.items || []);
+    } catch (error) {
+      console.error('Failed to fetch lots', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchActivityLogs = async (lot: Lot) => {
+    try {
+      setLoadingActivity(true);
+      setActivityLot(lot);
+      setActivityDialogOpen(true);
+      const { data } = await api.get(`/v1/lots/${lot.id}/activity`);
+      setActivityLogs(data || []);
+    } catch (error) {
+      console.error('Failed to fetch lot activity', error);
+    } finally {
+      setLoadingActivity(false);
+    }
+  };
+
+  // Calculate lot counts per stage
+  const stageCounts = STAGES.reduce((acc, stage) => {
+    acc[stage] = lots.filter((lot) => lot.current_process?.toLowerCase() === stage).length;
+    return acc;
+  }, {} as Record<string, number>);
+
+  // Filter lots based on selected stage and search query
+  const filteredLots = lots.filter((lot) => {
+    const matchesStage = selectedStage
+      ? lot.current_process?.toLowerCase() === selectedStage
+      : true;
+    const matchesSearch =
+      lot.lot_number.toLowerCase().includes(search.toLowerCase()) ||
+      (lot.design_number && lot.design_number.toLowerCase().includes(search.toLowerCase())) ||
+      (lot.size && lot.size.toLowerCase().includes(search.toLowerCase()));
+    return matchesStage && matchesSearch;
   });
 
-  const getOverallProgress = (): number => {
-    if (!order) return 0;
-    const currentIdx = STAGES.indexOf((order.current_stage || 'Planning') as Stage);
-    if (currentIdx === -1) return 0;
-    if (order.status === 'completed') return 100;
-    return Math.round((currentIdx / (STAGES.length - 1)) * 100);
-  };
-
-  const getStageStatus = (stage: string): 'completed' | 'current' | 'pending' => {
-    if (!order) return 'pending';
-    const currentIdx = STAGES.indexOf((order.current_stage || 'Planning') as Stage);
-    const stageIdx = STAGES.indexOf(stage as Stage);
-    if (order.status === 'completed') return 'completed';
-    if (stageIdx < currentIdx) return 'completed';
-    if (stageIdx === currentIdx) return 'current';
-    return 'pending';
-  };
-
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="h-8 w-48 animate-pulse rounded bg-muted" />
-        <div className="h-4 w-72 animate-pulse rounded bg-muted" />
-        <div className="grid gap-4 sm:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-24 animate-pulse rounded-lg border border-border" />
-          ))}
-        </div>
-        <div className="h-64 animate-pulse rounded-lg border border-border" />
-      </div>
-    );
-  }
-
-  if (isError || !order) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20">
-        <AlertCircle className="h-10 w-10 text-destructive" />
-        <p className="mt-3 text-sm font-medium text-foreground">Failed to load production order</p>
-        <p className="text-xs text-muted-foreground">The order may not exist or you lack permission</p>
-        <Button variant="outline" className="mt-4" onClick={() => window.history.back()}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Go Back
+  const columns: ColumnDef<Lot, unknown>[] = [
+    {
+      accessorKey: 'lot_number',
+      header: 'Lot Number',
+      cell: ({ row }) => <span className="font-mono text-xs font-semibold">{row.getValue('lot_number')}</span>,
+    },
+    {
+      accessorKey: 'design_number',
+      header: 'Design Number',
+      cell: ({ row }) => <span>{row.original.design_number || `D-${row.original.design_id}`}</span>,
+    },
+    {
+      accessorKey: 'size_qty',
+      header: 'Size & Qty',
+      cell: ({ row }) => (
+        <span>
+          {row.original.size} / {row.original.quantity} pcs
+        </span>
+      ),
+    },
+    {
+      accessorKey: 'progress',
+      header: 'Overall Progress',
+      cell: ({ row }) => {
+        const progress = STAGE_PROGRESS[row.original.current_process?.toLowerCase()] || 0;
+        return (
+          <div className="w-full max-w-[150px] space-y-1">
+            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+              <span>{progress}%</span>
+            </div>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-purple-600 transition-all duration-300"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: 'current_process',
+      header: 'Current Stage',
+      cell: ({ row }) => (
+        <Badge variant="purple" className="uppercase tracking-wider">
+          {row.original.current_process}
+        </Badge>
+      ),
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      cell: ({ row }) => (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 text-xs flex items-center gap-1.5 text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-950/20"
+          onClick={() => fetchActivityLogs(row.original)}
+        >
+          <Activity className="h-3.5 w-3.5" />
+          Track History
         </Button>
-      </div>
-    );
-  }
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => window.history.back()}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div>
-          <div className="flex items-center gap-3">
-            <h2 className="text-2xl font-bold text-foreground">{order.order_number}</h2>
-            <Badge variant={statusVariant(order.status)}>{order.status.replace('_', ' ')}</Badge>
-            {order.priority && (
-              <Badge variant={order.priority === 'urgent' ? 'destructive' : order.priority === 'high' ? 'warning' : 'secondary'}>
-                {order.priority}
-              </Badge>
-            )}
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {order.product_name || order.product_id}
-            {order.style_name && ` — ${order.style_name}`}
-          </p>
-        </div>
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight text-foreground">Process Tracking</h2>
+        <p className="text-sm text-muted-foreground">Monitor real-time lot progress across all stages of production.</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardContent className="flex items-center gap-3 pt-4">
-            <div className="rounded-lg bg-primary/10 p-2">
-              <Package className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Planned</p>
-              <p className="text-xl font-bold">{order.planned_quantity}</p>
-            </div>
+      {/* Horizontal Scrollable Stages Overview */}
+      <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-thin">
+        <Card
+          className={`shrink-0 w-36 cursor-pointer border transition-all ${
+            selectedStage === null
+              ? 'border-purple-600 ring-1 ring-purple-600/20 bg-purple-500/5'
+              : 'hover:border-purple-600/50'
+          }`}
+          onClick={() => setSelectedStage(null)}
+        >
+          <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+            <ClipboardList className="h-5 w-5 text-purple-600 mb-2" />
+            <p className="text-xs text-muted-foreground font-semibold">ALL LOTS</p>
+            <p className="text-lg font-bold text-foreground mt-1">{lots.length}</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="flex items-center gap-3 pt-4">
-            <div className="rounded-lg bg-emerald-100 p-2">
-              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Completed</p>
-              <p className="text-xl font-bold">{order.completed_qty || order.produced_quantity || 0}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-3 pt-4">
-            <div className="rounded-lg bg-destructive/10 p-2">
-              <AlertCircle className="h-5 w-5 text-destructive" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Rejected</p>
-              <p className="text-xl font-bold">{order.rejected_quantity || 0}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-3 pt-4">
-            <div className="rounded-lg bg-amber-100 p-2">
-              <BarChart3 className="h-5 w-5 text-amber-600" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Progress</p>
-              <p className="text-xl font-bold">{getOverallProgress()}%</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Production Pipeline</CardTitle>
-            <span className="text-sm text-muted-foreground">{getOverallProgress()}% complete</span>
-          </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full rounded-full bg-primary transition-all duration-500"
-              style={{ width: `${getOverallProgress()}%` }}
-            />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-1.5">
-            {STAGES.map((stage, idx) => {
-              const stageStatus = getStageStatus(stage);
-              return (
-                <div key={stage} className="flex items-center">
-                  <button
-                    type="button"
-                    onClick={() => setExpandedStage(expandedStage === stage ? null : stage)}
-                    className={cn(
-                      'flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-all hover:shadow-sm',
-                      stageStatus === 'completed' && 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200',
-                      stageStatus === 'current' && 'border-primary bg-primary/10 text-primary font-semibold ring-1 ring-primary/30',
-                      stageStatus === 'pending' && 'border-border text-muted-foreground hover:bg-muted',
-                    )}
-                  >
-                    {stageStatus === 'completed' ? (
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                    ) : stageStatus === 'current' ? (
-                      <Circle className="h-3.5 w-3.5 fill-current" />
-                    ) : (
-                      <Circle className="h-3.5 w-3.5 opacity-40" />
-                    )}
-                    {stage}
-                  </button>
-                  {idx < STAGES.length - 1 && (
-                    <ChevronRight className="mx-0.5 h-3.5 w-3.5 text-muted-foreground/50" />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-4 lg:grid-cols-2">
         {STAGES.map((stage) => {
-          const stageStatus = getStageStatus(stage);
-          const stageDetail = order.stage_details?.find((d) => d.stage === stage);
-          const isExpanded = expandedStage === stage;
-
-          if (stageStatus === 'pending' && !stageDetail) return null;
-
+          const count = stageCounts[stage] || 0;
+          const isActive = selectedStage === stage;
           return (
             <Card
               key={stage}
-              className={cn(
-                'transition-all',
-                stageStatus === 'current' && 'ring-1 ring-primary/30',
-              )}
+              className={`shrink-0 w-36 cursor-pointer border transition-all ${
+                isActive
+                  ? 'border-purple-600 ring-1 ring-purple-600/20 bg-purple-500/5'
+                  : 'hover:border-purple-600/50'
+              }`}
+              onClick={() => setSelectedStage(stage)}
             >
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div
-                      className={cn(
-                        'flex h-8 w-8 items-center justify-center rounded-lg',
-                        stageStatus === 'completed' && 'bg-emerald-100',
-                        stageStatus === 'current' && 'bg-primary/10',
-                        stageStatus === 'pending' && 'bg-muted',
-                      )}
-                    >
-                      {stageStatus === 'completed' ? (
-                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                      ) : stageStatus === 'current' ? (
-                        <Factory className="h-4 w-4 text-primary" />
-                      ) : (
-                        <Circle className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </div>
-                    <CardTitle className="text-sm">{stage}</CardTitle>
-                    <Badge variant={stageVariant(stage)} className="text-[10px]">
-                      {stageStatus === 'completed' ? 'Done' : stageStatus === 'current' ? 'Active' : 'Pending'}
-                    </Badge>
-                  </div>
-                  {stageDetail && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 text-xs"
-                      onClick={() => setExpandedStage(isExpanded ? null : stage)}
-                    >
-                      {isExpanded ? 'Collapse' : 'Details'}
-                    </Button>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent>
-                {stageDetail ? (
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="rounded-md border border-border p-2 text-center">
-                        <p className="text-[10px] text-muted-foreground">Input</p>
-                        <p className="text-sm font-bold">{stageDetail.input_qty}</p>
-                      </div>
-                      <div className="rounded-md border border-border p-2 text-center">
-                        <p className="text-[10px] text-muted-foreground">Output</p>
-                        <p className="text-sm font-bold text-emerald-600">{stageDetail.output_qty}</p>
-                      </div>
-                      <div className="rounded-md border border-border p-2 text-center">
-                        <p className="text-[10px] text-muted-foreground">Rejected</p>
-                        <p className={cn('text-sm font-bold', stageDetail.rejected_qty > 0 ? 'text-destructive' : '')}>
-                          {stageDetail.rejected_qty}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                      {stageDetail.operator_name && (
-                        <span className="flex items-center gap-1">
-                          <Users className="h-3 w-3" />
-                          {stageDetail.operator_name}
-                        </span>
-                      )}
-                      {stageDetail.machine_name && (
-                        <span className="flex items-center gap-1">
-                          <Settings className="h-3 w-3" />
-                          {stageDetail.machine_name}
-                        </span>
-                      )}
-                      {stageDetail.started_at && (
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {formatDate(stageDetail.started_at, 'dd MMM HH:mm')}
-                          {stageDetail.completed_at && ` → ${formatDate(stageDetail.completed_at, 'dd MMM HH:mm')}`}
-                        </span>
-                      )}
-                    </div>
-
-                    {isExpanded && stageDetail.bundles && stageDetail.bundles.length > 0 && (
-                      <div className="mt-2 border-t border-border pt-3">
-                        <p className="mb-2 flex items-center gap-1 text-xs font-semibold">
-                          <PackageOpen className="h-3 w-3" />
-                          Bundles in this stage ({stageDetail.bundles.length})
-                        </p>
-                        <div className="space-y-1.5">
-                          {stageDetail.bundles.map((bundle) => (
-                            <div
-                              key={bundle.id}
-                              className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-xs"
-                            >
-                              <div className="flex items-center gap-2">
-                                <span className="font-mono font-medium">{bundle.bundle_number}</span>
-                                {bundle.color_name && <span className="text-muted-foreground">{bundle.color_name}</span>}
-                                {bundle.size_name && <span className="text-muted-foreground">{bundle.size_name}</span>}
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-muted-foreground">Qty: {bundle.quantity}</span>
-                                <Badge variant={stageVariant(bundle.current_stage)} className="text-[10px]">
-                                  {bundle.current_stage || bundle.status}
-                                </Badge>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {stageDetail.remarks && (
-                      <p className="text-xs text-muted-foreground italic">{stageDetail.remarks}</p>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground">No data recorded for this stage yet.</p>
-                )}
+              <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+                <div
+                  className={`h-2 w-2 rounded-full mb-3 ${
+                    count > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground/30'
+                  }`}
+                />
+                <p className="text-xs text-muted-foreground font-semibold uppercase truncate w-full">
+                  {stage}
+                </p>
+                <p className="text-lg font-bold text-foreground mt-1">{count}</p>
               </CardContent>
             </Card>
           );
         })}
       </div>
 
-      {order.bundles && order.bundles.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <PackageOpen className="h-4 w-4" />
-              All Bundles ({order.bundles.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto rounded-md border border-border">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-muted/50">
-                    <th className="px-3 py-2 text-left font-medium text-muted-foreground">Bundle #</th>
-                    <th className="px-3 py-2 text-left font-medium text-muted-foreground">Color</th>
-                    <th className="px-3 py-2 text-left font-medium text-muted-foreground">Size</th>
-                    <th className="px-3 py-2 text-right font-medium text-muted-foreground">Quantity</th>
-                    <th className="px-3 py-2 text-left font-medium text-muted-foreground">Current Stage</th>
-                    <th className="px-3 py-2 text-left font-medium text-muted-foreground">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {order.bundles.map((bundle) => (
-                    <tr key={bundle.id} className="border-b border-border last:border-0">
-                      <td className="px-3 py-2 font-mono text-xs font-medium">{bundle.bundle_number}</td>
-                      <td className="px-3 py-2">{bundle.color_name || '—'}</td>
-                      <td className="px-3 py-2">{bundle.size_name || '—'}</td>
-                      <td className="px-3 py-2 text-right">{bundle.quantity}</td>
-                      <td className="px-3 py-2">
-                        <Badge variant={stageVariant(bundle.current_stage)}>
-                          {bundle.current_stage || '—'}
+      <Card>
+        <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
+          <div className="relative w-full sm:max-w-xs">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search by lot or design..."
+              className="pl-9 h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          {selectedStage && (
+            <Badge variant="outline" className="h-6 gap-1 border-purple-500/30 text-purple-600 uppercase">
+              Filter: {selectedStage}
+              <button
+                type="button"
+                className="hover:bg-accent rounded-full p-0.5 ml-1"
+                onClick={() => setSelectedStage(null)}
+              >
+                &times;
+              </button>
+            </Badge>
+          )}
+        </CardHeader>
+        <CardContent>
+          <DataTable
+            columns={columns}
+            data={filteredLots}
+            loading={loading}
+            emptyMessage="No lots found in this stage."
+            pageSize={20}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Activity Timeline Dialog */}
+      <Dialog open={activityDialogOpen} onOpenChange={setActivityDialogOpen}>
+        <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Lot Tracking History</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            {loadingActivity ? (
+              <div className="text-center text-sm text-muted-foreground py-8">Loading history...</div>
+            ) : activityLogs.length === 0 ? (
+              <div className="text-center text-sm text-muted-foreground py-8 space-y-2">
+                <Activity className="h-8 w-8 mx-auto text-muted-foreground/50" />
+                <p>No tracking history found.</p>
+                <p className="text-xs">Scan this lot's barcode in the scanner page to record process movements.</p>
+              </div>
+            ) : (
+              <div className="relative border-l border-muted-foreground/30 ml-4 space-y-6">
+                {activityLogs.map((log) => (
+                  <div key={log.id} className="relative pl-6">
+                    <div className="absolute -left-[9px] top-1.5 h-4.5 w-4.5 rounded-full border bg-background border-purple-500 flex items-center justify-center">
+                      <div className="h-1.5 w-1.5 rounded-full bg-purple-500" />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <Badge variant="purple" className="uppercase font-semibold tracking-wider">
+                          {log.process_stage}
                         </Badge>
-                      </td>
-                      <td className="px-3 py-2">
-                        <Badge variant={stageVariant(bundle.status)}>{bundle.status}</Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div>
-          <p className="text-xs text-muted-foreground">Order Date</p>
-          <p className="font-medium">{formatDate(order.date)}</p>
-        </div>
-        {order.start_date && (
-          <div>
-            <p className="text-xs text-muted-foreground">Start Date</p>
-            <p className="font-medium">{formatDate(order.start_date)}</p>
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          {new Date(log.created_at).toLocaleString()}
+                        </span>
+                      </div>
+                      <p className="text-sm text-foreground pt-0.5">{log.remarks}</p>
+                      <div className="text-xs text-muted-foreground flex items-center gap-1 pt-0.5">
+                        <User className="h-3 w-3" />
+                        <span>Scanned by: {log.scanned_by_name}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        )}
-        {order.end_date && (
-          <div>
-            <p className="text-xs text-muted-foreground">End Date</p>
-            <p className="font-medium">{formatDate(order.end_date)}</p>
-          </div>
-        )}
-        {order.bom_id && (
-          <div>
-            <p className="text-xs text-muted-foreground">BOM</p>
-            <p className="font-mono text-xs">{order.bom_id}</p>
-          </div>
-        )}
-      </div>
-
-      {order.remarks && (
-        <div>
-          <p className="text-xs text-muted-foreground">Remarks</p>
-          <p className="text-sm">{order.remarks}</p>
-        </div>
-      )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setActivityDialogOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

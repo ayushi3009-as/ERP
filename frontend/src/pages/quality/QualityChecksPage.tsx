@@ -437,7 +437,7 @@ export default function QualityChecksPage() {
           ) : (
             <DataTable
               columns={columns}
-              data={data?.data || []}
+              data={data?.items || []}
               loading={isLoading}
               emptyMessage="No quality checks found. Create your first QC to get started."
               pageSize={20}

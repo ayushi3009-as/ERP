@@ -455,7 +455,7 @@ export default function BOMPage() {
           ) : (
             <DataTable
               columns={columns}
-              data={data?.data || []}
+              data={data?.items || []}
               loading={isLoading}
               emptyMessage="No BOMs found. Create your first BOM to get started."
               pageSize={20}

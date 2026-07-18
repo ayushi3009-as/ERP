@@ -340,7 +340,7 @@ export default function VendorsPage() {
           ) : (
             <DataTable
               columns={columns}
-              data={data?.data || []}
+              data={data?.items || []}
               loading={isLoading}
               emptyMessage="No vendors found. Add your first vendor to get started."
               pageSize={20}

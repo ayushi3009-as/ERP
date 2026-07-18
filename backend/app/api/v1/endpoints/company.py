@@ -85,12 +85,74 @@ def _get_client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
+@router.get("/all", response_model=List[CompanyResponse])
+def get_all_companies(
+    current_user=Depends(require_role([UserRole.SUPER_ADMIN])),
+    db: Session = Depends(get_db),
+):
+    companies = db.query(Company).all()
+    return companies
+
+class SaaSCompanyUpdate(BaseModel):
+    is_approved: Optional[bool] = None
+    subscription_plan: Optional[str] = None
+    subscription_expiry: Optional[datetime] = None
+    tenant_status: Optional[str] = None
+
+@router.put("/{company_id}/saas", response_model=CompanyResponse)
+def update_company_saas(
+    company_id: int,
+    request: Request,
+    payload: SaaSCompanyUpdate,
+    current_user=Depends(require_role([UserRole.SUPER_ADMIN])),
+    db: Session = Depends(get_db),
+):
+    company = db.query(Company).filter(Company.id == company_id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    
+    if payload.is_approved is not None:
+        company.is_approved = payload.is_approved
+    if payload.subscription_plan is not None:
+        company.subscription_plan = payload.subscription_plan
+    if payload.subscription_expiry is not None:
+        company.subscription_expiry = payload.subscription_expiry
+    if payload.tenant_status is not None:
+        company.tenant_status = payload.tenant_status
+        
+    db.commit()
+    db.refresh(company)
+    return company
+
+class RenewPlanRequest(BaseModel):
+    payment_screenshot_url: str
+
+@router.post("/me/renew", response_model=MessageResponse)
+def renew_subscription(
+    payload: RenewPlanRequest,
+    current_user=Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    company = db.query(Company).filter(Company.id == current_user.company_id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+        
+    company.payment_screenshot_url = payload.payment_screenshot_url
+    company.tenant_status = 'pending_renewal'
+    db.commit()
+    
+    return {"message": "Renewal request submitted successfully"}
+
 @router.get("/", response_model=Optional[CompanyResponse])
 def get_company(
     current_user=Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ):
-    company = db.query(Company).first()
+    if current_user.role == UserRole.SUPER_ADMIN:
+        company = db.query(Company).first()
+    else:
+        company = db.query(Company).filter(Company.id == current_user.company_id).first()
+        
     if not company:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -106,12 +168,6 @@ def create_company(
     current_user=Depends(require_role([UserRole.SUPER_ADMIN])),
     db: Session = Depends(get_db),
 ):
-    existing = db.query(Company).first()
-    if existing:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Company already exists. Use PUT to update.",
-        )
 
     company = Company(
         name=payload.name,

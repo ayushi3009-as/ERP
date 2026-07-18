@@ -314,7 +314,7 @@ export default function BundlesPage() {
           ) : (
             <DataTable
               columns={columns}
-              data={data?.data || []}
+              data={data?.items || []}
               loading={isLoading}
               emptyMessage="No bundles found. Bundles are created during production."
               pageSize={20}

@@ -1,214 +1,267 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { CheckCircle2 } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useMutation } from '@tanstack/react-query';
+import { CheckCircle2, ChevronRight, UploadCloud, Loader2, QrCode } from 'lucide-react';
+import api from '@/lib/api';
 import Logo from '@/components/ui/Logo';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import {
-  Toast,
-  ToastDescription,
-  ToastProvider,
-  ToastTitle,
-  ToastViewport,
-} from '@/components/ui/Toast';
-import { useRegister } from '@/hooks/useAuth';
-
-const registerSchema = z
-  .object({
-    name: z.string().min(1, 'Full name is required').min(2, 'Name must be at least 2 characters'),
-    email: z.string().min(1, 'Email is required').email('Invalid email address'),
-    username: z
-      .string()
-      .min(1, 'Username is required')
-      .min(3, 'Username must be at least 3 characters')
-      .max(30, 'Username must not exceed 30 characters')
-      .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
-    phone: z
-      .string()
-      .min(1, 'Phone number is required')
-      .regex(/^[+]?[0-9]{10,15}$/, 'Invalid phone number'),
-    password: z
-      .string()
-      .min(1, 'Password is required')
-      .min(8, 'Password must be at least 8 characters')
-      .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-      .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-      .regex(/[0-9]/, 'Password must contain at least one number'),
-    confirmPassword: z.string().min(1, 'Please confirm your password'),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: 'Passwords do not match',
-    path: ['confirmPassword'],
-  });
-
-type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
-  const registerMutation = useRegister();
-  const [success, setSuccess] = useState(false);
-  const [toast, setToast] = useState<{
-    open: boolean;
-    title: string;
-    description: string;
-    variant?: 'default' | 'destructive' | 'success';
-  }>({ open: false, title: '', description: '' });
+  const navigate = useNavigate();
+  const [step, setStep] = useState(1);
+  const [formData, setFormData] = useState({
+    company_name: '',
+    admin_name: '',
+    admin_email: '',
+    phone: '',
+    password: '',
+    subscription_plan: 'trial',
+    payment_screenshot_url: '',
+  });
+  
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState('');
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<RegisterFormValues>({
-    resolver: zodResolver(registerSchema),
-    defaultValues: {
-      name: '',
-      email: '',
-      username: '',
-      phone: '',
-      password: '',
-      confirmPassword: '',
+  const registerMutation = useMutation({
+    mutationFn: async () => {
+      let finalData = { ...formData };
+      
+      // If there's a file, upload it first
+      if (file) {
+        setUploading(true);
+        const fileData = new FormData();
+        fileData.append('file', file);
+        try {
+          const uploadRes = await api.post('/v1/tenant/upload-payment', fileData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+          });
+          finalData.payment_screenshot_url = uploadRes.data.url;
+        } catch (err: any) {
+          throw new Error('Failed to upload screenshot: ' + (err.response?.data?.detail || err.message));
+        } finally {
+          setUploading(false);
+        }
+      }
+      
+      const { data } = await api.post('/v1/tenant/register', finalData);
+      return data;
     },
+    onSuccess: () => {
+      alert("Registration successful! Please wait for Super Admin approval before logging in.");
+      navigate('/login');
+    },
+    onError: (err: any) => {
+      setError(err.response?.data?.detail || err.message || 'Registration failed');
+    }
   });
 
-  const onSubmit = async (values: RegisterFormValues) => {
-    try {
-      await registerMutation.mutateAsync({
-        full_name: values.name,
-        username: values.email.split('@')[0],
-        email: values.email,
-        password: values.password,
-      });
-      setSuccess(true);
-      setToast({ open: true, title: 'Account Created', description: 'Your account has been registered successfully.', variant: 'success' });
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Registration failed. Please try again.';
-      setToast({ open: true, title: 'Registration Failed', description: message, variant: 'destructive' });
+  const handleNext = () => {
+    if (step === 1 && (!formData.company_name || !formData.admin_email || !formData.password)) {
+      setError("Please fill all required fields");
+      return;
     }
+    setError('');
+    setStep(step + 1);
   };
 
-  if (success) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4 dark:from-slate-950 dark:to-slate-900">
-        <Card className="w-full max-w-md shadow-xl">
-          <CardContent className="flex flex-col items-center py-12 pt-10">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900">
-              <CheckCircle2 className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <h2 className="mb-2 text-xl font-semibold text-foreground">Registration Successful!</h2>
-            <p className="mb-6 text-center text-sm text-muted-foreground">
-              Your account has been created. You have been logged in and redirected.
-            </p>
-            <Link to="/">
-              <Button>Go to Dashboard</Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const handleRegister = () => {
+    registerMutation.mutate();
+  };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4 dark:from-slate-950 dark:to-slate-900">
-      <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 rounded-2xl bg-purple-100 dark:bg-purple-900/30 p-4">
-            <Logo size={40} />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Microtechnique <span className="text-brand-gradient">ERP</span>
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">Create your account</p>
+    <div className="flex min-h-screen items-center justify-center bg-[#0B0A0F] px-4 py-12 sm:px-6 lg:px-8 bg-grid-white/[0.02]">
+      <div className="w-full max-w-2xl space-y-8 relative z-10">
+        
+        <div className="text-center">
+          <Logo className="mx-auto h-12 w-auto" />
+          <h2 className="mt-6 text-3xl font-bold tracking-tight text-white">
+            Create your SaaS Account
+          </h2>
+          <p className="mt-2 text-sm text-gray-400">
+            Start managing your manufacturing business efficiently
+          </p>
         </div>
 
-        <Card className="shadow-xl">
-          <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-xl">Register</CardTitle>
-            <CardDescription>Fill in the details below to create your account</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <Input
-                label="Full Name"
-                placeholder="John Doe"
-                error={errors.name?.message}
-                {...register('name')}
-              />
+        {error && (
+          <div className="rounded-md bg-red-500/10 p-4 text-sm text-red-400 border border-red-500/20">
+            {error}
+          </div>
+        )}
 
-              <Input
-                label="Email"
-                type="email"
-                placeholder="john@company.com"
-                error={errors.email?.message}
-                {...register('email')}
-              />
+        <div className="rounded-xl border border-white/10 bg-[#13111C] shadow-2xl p-8">
+          
+          {/* Progress Bar */}
+          <div className="mb-8 flex items-center justify-between">
+            {['Account Details', 'Choose Plan', 'Payment'].map((label, index) => (
+              <div key={label} className="flex flex-col items-center flex-1">
+                <div className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold transition-colors duration-300 ${
+                  step > index + 1 ? 'bg-purple-600 text-white' : 
+                  step === index + 1 ? 'bg-purple-600 ring-4 ring-purple-600/20 text-white' : 
+                  'bg-white/5 text-gray-500'
+                }`}>
+                  {step > index + 1 ? <CheckCircle2 className="h-5 w-5" /> : index + 1}
+                </div>
+                <span className={`mt-2 text-xs font-medium ${step >= index + 1 ? 'text-purple-400' : 'text-gray-500'}`}>
+                  {label}
+                </span>
+              </div>
+            ))}
+          </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <Input
-                  label="Username"
-                  placeholder="johndoe"
-                  error={errors.username?.message}
-                  {...register('username')}
-                />
-                <Input
-                  label="Phone"
-                  type="tel"
-                  placeholder="+919876543210"
-                  error={errors.phone?.message}
-                  {...register('phone')}
+          {/* Step 1: Details */}
+          {step === 1 && (
+            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300">Company Name *</label>
+                <input type="text" required
+                  className="mt-1 block w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-gray-500 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 sm:text-sm"
+                  value={formData.company_name} onChange={e => setFormData({...formData, company_name: e.target.value})}
                 />
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300">Admin Full Name</label>
+                  <input type="text"
+                    className="mt-1 block w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-gray-500 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 sm:text-sm"
+                    value={formData.admin_name} onChange={e => setFormData({...formData, admin_name: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300">Admin Email *</label>
+                  <input type="email" required
+                    className="mt-1 block w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-gray-500 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 sm:text-sm"
+                    value={formData.admin_email} onChange={e => setFormData({...formData, admin_email: e.target.value})}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300">Phone Number</label>
+                  <input type="text"
+                    className="mt-1 block w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-gray-500 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 sm:text-sm"
+                    value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300">Password *</label>
+                  <input type="password" required
+                    className="mt-1 block w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-gray-500 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 sm:text-sm"
+                    value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})}
+                  />
+                </div>
+              </div>
+              <div className="pt-4 flex justify-end">
+                <button onClick={handleNext} className="flex items-center gap-2 rounded-md bg-purple-600 px-6 py-2 text-sm font-semibold text-white shadow-sm hover:bg-purple-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-600 transition-colors">
+                  Next Step <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
 
-              <Input
-                label="Password"
-                type="password"
-                placeholder="Min 8 characters"
-                error={errors.password?.message}
-                {...register('password')}
-              />
+          {/* Step 2: Choose Plan */}
+          {step === 2 && (
+            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                {[
+                  { id: 'trial', name: 'Free Trial', price: '₹0 / 14 days' },
+                  { id: 'premium', name: 'Premium', price: '₹4,999 / mo' },
+                  { id: 'enterprise', name: 'Enterprise', price: '₹9,999 / mo' }
+                ].map(plan => (
+                  <div key={plan.id} onClick={() => setFormData({...formData, subscription_plan: plan.id})}
+                    className={`cursor-pointer rounded-lg border p-4 transition-all ${
+                      formData.subscription_plan === plan.id 
+                      ? 'border-purple-500 bg-purple-500/10 ring-2 ring-purple-500 ring-offset-2 ring-offset-[#13111C]' 
+                      : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10'
+                    }`}
+                  >
+                    <h3 className="font-semibold text-white">{plan.name}</h3>
+                    <p className="mt-1 text-sm text-gray-400">{plan.price}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="pt-6 flex justify-between">
+                <button onClick={() => setStep(1)} className="text-sm font-semibold text-gray-400 hover:text-white">
+                  Back
+                </button>
+                <button onClick={() => setStep(3)} className="flex items-center gap-2 rounded-md bg-purple-600 px-6 py-2 text-sm font-semibold text-white shadow-sm hover:bg-purple-500 transition-colors">
+                  Proceed to Payment <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
 
-              <Input
-                label="Confirm Password"
-                type="password"
-                placeholder="Re-enter password"
-                error={errors.confirmPassword?.message}
-                {...register('confirmPassword')}
-              />
+          {/* Step 3: Payment */}
+          {step === 3 && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+              {formData.subscription_plan === 'trial' ? (
+                <div className="text-center py-8">
+                  <CheckCircle2 className="mx-auto h-16 w-16 text-green-500 mb-4" />
+                  <h3 className="text-xl font-medium text-white mb-2">Ready to start your free trial?</h3>
+                  <p className="text-gray-400">No payment required for the trial period.</p>
+                </div>
+              ) : (
+                <div className="rounded-lg border border-white/10 bg-white/5 p-6 text-center">
+                  <div className="inline-flex h-32 w-32 items-center justify-center rounded-xl bg-white p-2 mb-4">
+                    {/* Placeholder for actual QR code image */}
+                    <QrCode className="h-24 w-24 text-gray-900" />
+                  </div>
+                  <h3 className="text-lg font-medium text-white">Scan to Pay via UPI</h3>
+                  <p className="mt-2 text-sm font-mono text-purple-400 bg-purple-400/10 inline-block px-3 py-1 rounded">
+                    merchant@upi
+                  </p>
+                  <p className="mt-4 text-xs text-gray-500">
+                    After making the payment for your selected plan, please upload the screenshot below for verification.
+                  </p>
+                </div>
+              )}
 
-              <Button type="submit" className="w-full" loading={registerMutation.isPending}>
-                Create Account
-              </Button>
-            </form>
-          </CardContent>
-          <CardFooter className="flex-col space-y-2 border-t pt-4">
-            <p className="text-sm text-muted-foreground">
-              Already have an account?{' '}
-              <Link to="/login" className="font-medium text-primary hover:underline">
-                Sign in
-              </Link>
-            </p>
-          </CardFooter>
-        </Card>
+              {formData.subscription_plan !== 'trial' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Upload Payment Screenshot</label>
+                  <div className="mt-1 flex justify-center rounded-md border-2 border-dashed border-white/20 px-6 pt-5 pb-6 hover:border-purple-500/50 transition-colors">
+                    <div className="space-y-1 text-center">
+                      <UploadCloud className="mx-auto h-12 w-12 text-gray-400" />
+                      <div className="flex text-sm text-gray-400 justify-center">
+                        <label htmlFor="file-upload" className="relative cursor-pointer rounded-md font-medium text-purple-500 focus-within:outline-none hover:text-purple-400">
+                          <span>Upload a file</span>
+                          <input id="file-upload" name="file-upload" type="file" className="sr-only" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+                        </label>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">PNG, JPG, GIF up to 5MB</p>
+                    </div>
+                  </div>
+                  {file && <p className="mt-2 text-sm text-green-400 text-center flex items-center justify-center gap-1"><CheckCircle2 className="w-4 h-4" /> {file.name} selected</p>}
+                </div>
+              )}
+
+              <div className="pt-6 flex justify-between">
+                <button onClick={() => setStep(2)} className="text-sm font-semibold text-gray-400 hover:text-white" disabled={registerMutation.isPending || uploading}>
+                  Back
+                </button>
+                <button 
+                  onClick={handleRegister} 
+                  disabled={registerMutation.isPending || uploading || (formData.subscription_plan !== 'trial' && !file)}
+                  className="flex items-center gap-2 rounded-md bg-purple-600 px-6 py-2 text-sm font-semibold text-white shadow-sm hover:bg-purple-500 disabled:opacity-50 transition-colors"
+                >
+                  {(registerMutation.isPending || uploading) ? (
+                    <><Loader2 className="h-4 w-4 animate-spin" /> Processing...</>
+                  ) : (
+                    'Complete Registration'
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+          
+        </div>
+        
+        <p className="text-center text-sm text-gray-400">
+          Already have an account?{' '}
+          <Link to="/login" className="font-semibold text-purple-400 hover:text-purple-300">
+            Sign in
+          </Link>
+        </p>
       </div>
-
-      <ToastProvider>
-        <Toast open={toast.open} onOpenChange={(open) => setToast((s) => ({ ...s, open }))} variant={toast.variant}>
-          <div className="grid gap-1">
-            <ToastTitle>{toast.title}</ToastTitle>
-            <ToastDescription>{toast.description}</ToastDescription>
-          </div>
-        </Toast>
-        <ToastViewport />
-      </ToastProvider>
     </div>
   );
 }

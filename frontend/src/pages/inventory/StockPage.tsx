@@ -248,8 +248,8 @@ export default function StockPage() {
     },
   ];
 
-  const totalValue = (data?.data || []).reduce((sum, row) => sum + row.value, 0);
-  const lowStockCount = (data?.data || []).filter((r) => {
+  const totalValue = (data?.items || []).reduce((sum, row) => sum + row.value, 0);
+  const lowStockCount = (data?.items || []).filter((r) => {
     const min = r.min_stock_level || 0;
     return min > 0 && r.available <= min;
   }).length;
@@ -360,7 +360,7 @@ export default function StockPage() {
           ) : (
             <DataTable
               columns={columns}
-              data={data?.data || []}
+              data={data?.items || []}
               loading={isLoading}
               emptyMessage="No stock records found."
               pageSize={50}

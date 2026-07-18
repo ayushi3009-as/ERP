@@ -13,6 +13,8 @@ import {
   ShieldCheck,
   ShieldAlert,
   UserX,
+  UserCheck,
+  Trash2,
 } from 'lucide-react';
 import {
   Button,
@@ -57,23 +59,39 @@ const editUserSchema = z.object({
 
 type UserFormData = z.infer<typeof userSchema>;
 
-const ROLES = ['admin', 'manager', 'accountant', 'sales', 'purchase', 'warehouse', 'production', 'viewer'] as const;
+const ROLES = [
+  'company_admin',
+  'factory_manager',
+  'production_manager',
+  'purchase_manager',
+  'sales_manager',
+  'store_manager',
+  'hr',
+  'accountant',
+  'quality',
+  'operator',
+  'worker'
+] as const;
 
 const PERMISSIONS: Record<string, string[]> = {
-  admin: ['all'],
-  manager: ['sales', 'purchase', 'inventory', 'production', 'reports', 'masters'],
+  company_admin: ['all'],
+  factory_manager: ['sales', 'purchase', 'inventory', 'production', 'reports', 'masters'],
+  production_manager: ['production_orders', 'bundles', 'bom', 'quality_checks', 'reports'],
+  purchase_manager: ['purchase_orders', 'grn', 'purchase_invoices', 'vendors'],
+  sales_manager: ['sales_orders', 'quotations', 'invoices', 'delivery_challans', 'customers'],
+  store_manager: ['inventory', 'stock_movements', 'warehouses'],
+  hr: ['employees', 'attendance', 'payroll'],
   accountant: ['accounts', 'payments', 'receipts', 'reports', 'gst'],
-  sales: ['sales_orders', 'quotations', 'invoices', 'delivery_challans', 'customers'],
-  purchase: ['purchase_orders', 'grn', 'purchase_invoices', 'vendors'],
-  warehouse: ['inventory', 'stock_movements', 'warehouses'],
-  production: ['production_orders', 'bundles', 'bom', 'quality_checks'],
-  viewer: ['reports_view'],
+  quality: ['quality_checks', 'reports'],
+  operator: ['production_scanning'],
+  worker: ['basic_view']
 };
 
 const roleVariant = (role: string) => {
   switch (role) {
-    case 'admin': return 'destructive' as const;
-    case 'manager': return 'default' as const;
+    case 'super_admin':
+    case 'company_admin': return 'destructive' as const;
+    case 'factory_manager': return 'default' as const;
     case 'accountant': return 'warning' as const;
     default: return 'outline' as const;
   }
@@ -93,7 +111,7 @@ export default function UsersSettingsPage() {
   const { data, isLoading, isError } = useQuery({
     queryKey: ['users', { search, page, roleFilter }],
     queryFn: async () => {
-      const { data } = await api.get<PaginatedResponse<User>>('/v1/users', {
+      const { data } = await api.get<PaginatedResponse<User>>('/v1/users/', {
         params: {
           search,
           page,
@@ -107,7 +125,14 @@ export default function UsersSettingsPage() {
 
   const createMutation = useMutation({
     mutationFn: async (values: UserFormData) => {
-      const { data } = await api.post('/v1/users', values);
+      const payload = {
+        email: values.email,
+        username: values.email.split('@')[0] + Math.floor(Math.random() * 1000), // Ensure uniqueness
+        full_name: values.name,
+        role: values.role.toLowerCase(),
+        password: values.password
+      };
+      const { data } = await api.post('/v1/users/', payload);
       return data;
     },
     onSuccess: () => {
@@ -119,7 +144,11 @@ export default function UsersSettingsPage() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, ...values }: UserFormData & { id: string }) => {
-      const { data } = await api.put(`/v1/users/${id}`, values);
+      const payload = {
+        full_name: values.name,
+        role: values.role.toLowerCase()
+      };
+      const { data } = await api.put(`/v1/users/${id}`, payload);
       return data;
     },
     onSuccess: () => {
@@ -131,7 +160,7 @@ export default function UsersSettingsPage() {
 
   const deactivateMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { data } = await api.patch(`/v1/users/${id}/deactivate`);
+      const { data } = await api.put(`/v1/users/${id}`, { is_active: false });
       return data;
     },
     onSuccess: () => {
@@ -141,7 +170,17 @@ export default function UsersSettingsPage() {
 
   const activateMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { data } = await api.patch(`/v1/users/${id}/activate`);
+      const { data } = await api.put(`/v1/users/${id}`, { is_active: true });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { data } = await api.delete(`/v1/users/${id}`);
       return data;
     },
     onSuccess: () => {
@@ -179,7 +218,8 @@ export default function UsersSettingsPage() {
   function openEdit(user: User) {
     setEditingUser(user);
     reset({
-      name: user.name,
+      // @ts-ignore
+      name: user.full_name || user.name || '',
       email: user.email,
       role: user.role,
       password: '',
@@ -202,14 +242,14 @@ export default function UsersSettingsPage() {
 
   const columns: ColumnDef<User, unknown>[] = [
     {
-      accessorKey: 'name',
+      accessorKey: 'full_name',
       header: 'Name',
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-            <span className="text-xs font-medium text-primary">{(row.getValue('name') as string)?.charAt(0).toUpperCase()}</span>
+            <span className="text-xs font-medium text-primary">{(row.getValue('full_name') as string)?.charAt(0).toUpperCase() || 'U'}</span>
           </div>
-          <span className="font-medium">{row.getValue('name')}</span>
+          <span className="font-medium">{row.getValue('full_name') || 'Unnamed User'}</span>
         </div>
       ),
     },
@@ -259,7 +299,7 @@ export default function UsersSettingsPage() {
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-destructive hover:text-destructive"
+              className="h-8 w-8 text-orange-500 hover:text-orange-600"
               onClick={(e) => { e.stopPropagation(); deactivateMutation.mutate(row.original.id); }}
               disabled={deactivateMutation.isPending}
               title="Deactivate"
@@ -270,14 +310,29 @@ export default function UsersSettingsPage() {
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-emerald-600 hover:text-emerald-700"
+              className="h-8 w-8 text-emerald-500 hover:text-emerald-600"
               onClick={(e) => { e.stopPropagation(); activateMutation.mutate(row.original.id); }}
               disabled={activateMutation.isPending}
               title="Activate"
             >
-              <ShieldCheck className="h-3.5 w-3.5" />
+              <UserCheck className="h-3.5 w-3.5" />
             </Button>
           )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-destructive hover:text-destructive"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (window.confirm('Are you sure you want to delete this user?')) {
+                deleteMutation.mutate(row.original.id);
+              }
+            }}
+            disabled={deleteMutation.isPending}
+            title="Delete"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
         </div>
       ),
     },
@@ -326,7 +381,7 @@ export default function UsersSettingsPage() {
               <p className="text-xs text-muted-foreground">Please try again later</p>
             </div>
           ) : (
-            <DataTable columns={columns} data={data?.data || []} loading={isLoading} emptyMessage="No users found. Add your first user to get started." pageSize={20} />
+            <DataTable columns={columns} data={data?.items || []} loading={isLoading} emptyMessage="No users found. Add your first user to get started." pageSize={20} />
           )}
         </CardContent>
       </Card>

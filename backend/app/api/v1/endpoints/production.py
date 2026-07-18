@@ -40,7 +40,12 @@ def scan_barcode(
     if not barcode:
         raise HTTPException(status_code=400, detail="Barcode cannot be empty")
         
-    lot = db.query(Lot).filter(Lot.barcode == barcode, Lot.is_deleted == False).first()
+    from sqlalchemy import or_
+    lot = db.query(Lot).filter(
+        or_(Lot.barcode == barcode, Lot.lot_number == barcode),
+        Lot.is_deleted == False,
+        Lot.company_id == current_user.company_id
+    ).first()
     
     if not lot:
         # Check if it's an employee barcode (for attendance or login)
@@ -76,11 +81,12 @@ def scan_barcode(
     
     # Record history
     history = BarcodeScanHistory(
-        barcode=barcode,
+        barcode=lot.barcode,
         scan_type="lot",
         scanned_by=scan_in.employee_id or current_user.id,
         process_stage=next_stage,
         factory_id=lot.factory_id,
+        company_id=lot.company_id,
         remarks=f"Advanced from {current_stage} to {next_stage}"
     )
     

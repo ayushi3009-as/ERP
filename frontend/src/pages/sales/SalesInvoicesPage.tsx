@@ -424,7 +424,7 @@ export default function SalesInvoicesPage() {
           ) : (
             <DataTable
               columns={columns}
-              data={data?.data || []}
+              data={data?.items || []}
               loading={isLoading}
               emptyMessage="No sales invoices found. Create your first invoice to get started."
               pageSize={20}

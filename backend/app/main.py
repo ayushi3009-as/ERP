@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import api_router
@@ -287,6 +288,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+import os
+if not os.path.exists("uploads"):
+    os.makedirs("uploads")
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # Rate limiting: found completely absent during the go-live blocker
 # review (Blocker 3). Applied globally via middleware rather than

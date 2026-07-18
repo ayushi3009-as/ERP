@@ -19,11 +19,6 @@ from app.models.models import User, UserSession, UserRole, AuditLog
 from app.schemas.schemas import (
     Token,
     LoginRequest,
-    RegisterRequest,
-    TOTPSetupResponse,
-    TOTPVerifyRequest,
-    ForgotPasswordRequest,
-    ResetPasswordRequest,
     MessageResponse,
     UserResponse,
 )
@@ -96,6 +91,46 @@ def login(
             detail="Account is deactivated",
         )
 
+    # SaaS Model: Only allow admins to login
+    user_role_val = (user.role.value if hasattr(user.role, 'value') else str(user.role)).lower()
+    if user_role_val not in [UserRole.SUPER_ADMIN.value.lower(), UserRole.COMPANY_ADMIN.value.lower()]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access restricted: Only administrators can log in to this portal.",
+        )
+
+    # SaaS Multi-Tenancy Check for Company Admins
+    if user_role_val == UserRole.COMPANY_ADMIN.value.lower():
+        if not user.company_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Your account is not associated with any company.",
+            )
+        
+        # Load the company and check its status
+        from app.models.models import Company
+        company = db.query(Company).filter(Company.id == user.company_id).first()
+        if not company:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Associated company not found.",
+            )
+        if not company.is_approved:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Your company account is pending approval from the Super Admin.",
+            )
+        if company.tenant_status == "suspended":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Your company account has been suspended.",
+            )
+        if company.subscription_expiry and company.subscription_expiry < datetime.utcnow():
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Your subscription has expired. Please contact the Super Admin.",
+            )
+
     if user.totp_enabled:
         if not hasattr(payload, "totp_code") or not payload.totp_code:
             raise HTTPException(
@@ -122,7 +157,6 @@ def login(
     session = UserSession(
         user_id=user.id,
         refresh_token=refresh_token,
-        device_id=payload.device_id,
         ip_address=_get_client_ip(request),
         user_agent=request.headers.get("user-agent", "")[:500],
         expires_at=datetime.utcnow()
@@ -130,11 +164,6 @@ def login(
     )
     db.add(session)
     db.commit()
-
-    if payload.device_id:
-        from app.services import mobile_service
-        mobile_service.mark_device_active(db, payload.device_id)
-        db.commit()
 
     _create_audit_log(
         db=db,
@@ -151,62 +180,7 @@ def login(
     )
 
 
-@router.post(
-    "/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED
-)
-def register(
-    request: Request,
-    payload: RegisterRequest,
-    db: Session = Depends(get_db),
-):
-    existing = (
-        db.query(User)
-        .filter((User.email == payload.email) | (User.username == payload.username))
-        .first()
-    )
-    if existing:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Email or username already exists",
-        )
 
-    user_count = db.query(User).count()
-    if user_count == 0:
-        role = UserRole.SUPER_ADMIN
-    else:
-        role = UserRole.OPERATOR
-
-    user = User(
-        email=payload.email,
-        username=payload.username,
-        password_hash=get_password_hash(payload.password),
-        full_name=payload.full_name,
-        phone=payload.phone,
-        role=role,
-        is_verified=False,
-        created_by=None,
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-
-    _create_audit_log(
-        db=db,
-        user_id=user.id,
-        action="create",
-        module="auth",
-        record_id=user.id,
-        record_type="user",
-        ip_address=_get_client_ip(request),
-        user_agent=request.headers.get("user-agent", "")[:500],
-        new_values={
-            "email": user.email,
-            "username": user.username,
-            "role": user.role.value,
-        },
-    )
-
-    return user
 
 
 @router.post("/logout", response_model=MessageResponse)
@@ -316,147 +290,7 @@ def refresh_token(
     )
 
 
-@router.post("/forgot-password", response_model=MessageResponse)
-def forgot_password(
-    request: Request,
-    payload: ForgotPasswordRequest,
-    db: Session = Depends(get_db),
-):
-    user = db.query(User).filter(User.email == payload.email).first()
-    if not user:
-        return MessageResponse(
-            message="If the email exists, a password reset link has been sent."
-        )
 
-    reset_token = create_access_token(
-        data={"sub": str(user.id), "type": "password_reset"},
-        expires_delta=timedelta(hours=1),
-    )
-
-    _create_audit_log(
-        db=db,
-        user_id=user.id,
-        action="forgot_password",
-        module="auth",
-        ip_address=_get_client_ip(request),
-        user_agent=request.headers.get("user-agent", "")[:500],
-    )
-
-    return MessageResponse(
-        message="If the email exists, a password reset link has been sent."
-    )
-
-
-@router.post("/reset-password", response_model=MessageResponse)
-def reset_password(
-    request: Request,
-    payload: ResetPasswordRequest,
-    db: Session = Depends(get_db),
-):
-    token_payload = decode_token(payload.token)
-    if token_payload is None or token_payload.get("type") != "password_reset":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired reset token",
-        )
-
-    user_id = token_payload.get("sub")
-    user = db.query(User).filter(User.id == int(user_id)).first()
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
-
-    user.password_hash = get_password_hash(payload.new_password)
-    user.failed_attempts = 0
-    user.locked_until = None
-
-    db.query(UserSession).filter(
-        UserSession.user_id == user.id,
-        UserSession.is_revoked == False,
-    ).update({"is_revoked": True})
-
-    db.commit()
-
-    _create_audit_log(
-        db=db,
-        user_id=user.id,
-        action="reset_password",
-        module="auth",
-        ip_address=_get_client_ip(request),
-        user_agent=request.headers.get("user-agent", "")[:500],
-    )
-
-    return MessageResponse(message="Password reset successfully")
-
-
-@router.post("/2fa/setup", response_model=TOTPSetupResponse)
-def setup_2fa(
-    request: Request,
-    current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db),
-):
-    if current_user.totp_enabled:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="2FA is already enabled",
-        )
-
-    secret = generate_totp_secret()
-    current_user.totp_secret = secret
-    db.commit()
-
-    uri = get_totp_uri(secret, current_user.email)
-
-    _create_audit_log(
-        db=db,
-        user_id=current_user.id,
-        action="2fa_setup",
-        module="auth",
-        ip_address=_get_client_ip(request),
-        user_agent=request.headers.get("user-agent", "")[:500],
-    )
-
-    return TOTPSetupResponse(
-        secret=secret,
-        uri=uri,
-    )
-
-
-@router.post("/2fa/verify", response_model=MessageResponse)
-def verify_2fa(
-    request: Request,
-    payload: TOTPVerifyRequest,
-    current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db),
-):
-    if not current_user.totp_secret:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="2FA not set up. Call /2fa/setup first.",
-        )
-
-    if not verify_totp(current_user.totp_secret, payload.code):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid TOTP code",
-        )
-
-    current_user.totp_enabled = True
-    current_user.is_verified = True
-    db.commit()
-
-    _create_audit_log(
-        db=db,
-        user_id=current_user.id,
-        action="2fa_verify",
-        module="auth",
-        ip_address=_get_client_ip(request),
-        user_agent=request.headers.get("user-agent", "")[:500],
-    )
-
-    return MessageResponse(message="2FA verified and enabled successfully")
 
 
 @router.get("/me", response_model=UserResponse)

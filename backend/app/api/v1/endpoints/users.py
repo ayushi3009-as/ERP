@@ -9,7 +9,7 @@ from app.schemas.schemas import (
     UserCreate,
     UserUpdate,
     UserResponse,
-    UserListResponse,
+    PaginatedResponse,
     MessageResponse,
 )
 from app.api.v1.dependencies import get_current_active_user, require_role
@@ -54,7 +54,7 @@ def _get_client_ip(request: Request) -> str:
 ADMIN_ROLES = [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN]
 
 
-@router.get("/", response_model=UserListResponse)
+@router.get("/", response_model=PaginatedResponse[UserResponse])
 def list_users(
     request: Request,
     page: int = 1,
@@ -65,7 +65,7 @@ def list_users(
     current_user: User = Depends(require_role(ADMIN_ROLES)),
     db: Session = Depends(get_db),
 ):
-    query = db.query(User).filter(User.is_deleted == False)
+    query = db.query(User).filter(User.is_deleted == False, User.company_id == current_user.company_id)
 
     if search:
         search_term = f"%{search}%"
@@ -85,11 +85,13 @@ def list_users(
     offset = (page - 1) * page_size
     users = query.order_by(User.id.desc()).offset(offset).limit(page_size).all()
 
-    return UserListResponse(
+    total_pages = (total + page_size - 1) // page_size if page_size > 0 else 0
+    return PaginatedResponse(
         items=users,
         total=total,
         page=page,
         page_size=page_size,
+        total_pages=total_pages
     )
 
 
@@ -100,7 +102,7 @@ def get_user(
     current_user: User = Depends(require_role(ADMIN_ROLES)),
     db: Session = Depends(get_db),
 ):
-    user = db.query(User).filter(User.id == user_id, User.is_deleted == False).first()
+    user = db.query(User).filter(User.id == user_id, User.is_deleted == False, User.company_id == current_user.company_id).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -149,6 +151,8 @@ def create_user(
         phone=payload.phone,
         role=user_role,
         created_by=current_user.id,
+        company_id=current_user.company_id,
+        factory_id=current_user.factory_id,
     )
     db.add(user)
     db.commit()
@@ -182,7 +186,7 @@ def update_user(
     current_user: User = Depends(require_role(ADMIN_ROLES)),
     db: Session = Depends(get_db),
 ):
-    user = db.query(User).filter(User.id == user_id, User.is_deleted == False).first()
+    user = db.query(User).filter(User.id == user_id, User.is_deleted == False, User.company_id == current_user.company_id).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -253,7 +257,7 @@ def delete_user(
     current_user: User = Depends(require_role(ADMIN_ROLES)),
     db: Session = Depends(get_db),
 ):
-    user = db.query(User).filter(User.id == user_id, User.is_deleted == False).first()
+    user = db.query(User).filter(User.id == user_id, User.is_deleted == False, User.company_id == current_user.company_id).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

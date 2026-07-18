@@ -1,0 +1,51 @@
+[
+    {
+        "id": "trial",
+        "name": "Trial",
+        "price": "Free",
+        "desc": "7 Days",
+        "features": [
+            "Up to 5 Employees",
+            "Basic Lot Tracking",
+            "Standard Reports"
+        ],
+        "highlighted": false
+    },
+    {
+        "id": "basic",
+        "name": "Basic",
+        "price": "\u20b9999",
+        "desc": "Per Month",
+        "features": [
+            "Up to 20 Employees",
+            "QR Code Generation",
+            "Payroll Management"
+        ],
+        "highlighted": true
+    },
+    {
+        "id": "premium",
+        "name": "Premium",
+        "price": "\u20b92000",
+        "desc": "Per Month",
+        "features": [
+            "Unlimited Employees",
+            "Advanced Multi-stage Lots",
+            "Priority Support",
+            "Attendance tracking"
+        ],
+        "highlighted": false
+    },
+    {
+        "id": "enterprise",
+        "name": "Enterprise",
+        "price": "Custom",
+        "desc": "Contact Us",
+        "features": [
+            "Custom Workflows",
+            "Dedicated Server",
+            "On-site Training"
+        ],
+        "highlighted": false
+    }
+]

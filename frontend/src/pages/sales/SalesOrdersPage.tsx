@@ -532,7 +532,7 @@ export default function SalesOrdersPage() {
           ) : (
             <DataTable
               columns={columns}
-              data={data?.data || []}
+              data={data?.items || []}
               loading={isLoading}
               emptyMessage="No sales orders found. Create your first order to get started."
               pageSize={20}

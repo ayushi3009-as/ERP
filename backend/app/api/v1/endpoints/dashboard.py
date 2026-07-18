@@ -25,25 +25,29 @@ def get_dashboard_stats(
     completed_stages = [ProductionStage.FINISHED.value, ProductionStage.DISPATCH.value]
     completed_lots = db.query(Lot).filter(
         Lot.is_deleted == False,
+        Lot.company_id == current_user.company_id,
         Lot.current_process.in_(completed_stages)
     ).count()
     
     # Pending lots (not finished/dispatch)
     pending_lots = db.query(Lot).filter(
         Lot.is_deleted == False,
+        Lot.company_id == current_user.company_id,
         ~Lot.current_process.in_(completed_stages)
     ).count()
     
     # Today's production (lots created today)
     today_production = db.query(Lot).filter(
         Lot.is_deleted == False,
+        Lot.company_id == current_user.company_id,
         func.date(Lot.created_at) == today
     ).count()
     
     # Active employees
     active_employees = db.query(User).filter(
         User.is_active == True,
-        User.is_deleted == False
+        User.is_deleted == False,
+        User.company_id == current_user.company_id
     ).count()
     
     return DashboardStats(

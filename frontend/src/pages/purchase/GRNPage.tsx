@@ -360,7 +360,7 @@ export default function GRNPage() {
           ) : (
             <DataTable
               columns={columns}
-              data={data?.data || []}
+              data={data?.items || []}
               loading={isLoading}
               emptyMessage="No GRNs found. Create your first GRN to get started."
               pageSize={20}

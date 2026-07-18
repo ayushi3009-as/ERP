@@ -319,7 +319,7 @@ export default function CustomersPage() {
           ) : (
             <DataTable
               columns={columns}
-              data={data?.data || []}
+              data={data?.items || []}
               loading={isLoading}
               emptyMessage="No customers found. Add your first customer to get started."
               pageSize={20}

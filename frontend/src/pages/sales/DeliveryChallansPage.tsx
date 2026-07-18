@@ -387,7 +387,7 @@ export default function DeliveryChallansPage() {
           ) : (
             <DataTable
               columns={columns}
-              data={data?.data || []}
+              data={data?.items || []}
               loading={isLoading}
               emptyMessage="No delivery challans found. Create your first challan to get started."
               pageSize={20}

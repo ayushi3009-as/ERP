@@ -372,7 +372,7 @@ export default function QuotationsPage() {
           ) : (
             <DataTable
               columns={columns}
-              data={data?.data || []}
+              data={data?.items || []}
               loading={isLoading}
               emptyMessage="No quotations found. Create your first quotation to get started."
               pageSize={20}

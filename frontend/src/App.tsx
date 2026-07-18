@@ -10,12 +10,18 @@ import DashboardPage from '@/pages/dashboard/DashboardPage';
 import MastersListPage from '@/pages/masters/MastersListPage';
 import EmployeesPage from '@/pages/masters/EmployeesPage';
 import ProductsPage from '@/pages/masters/ProductsPage';
+import DesignsPage from '@/pages/masters/DesignsPage';
 import LotsPage from '@/pages/production/LotsPage';
 import ScannerPage from '@/pages/production/ScannerPage';
+import ProductionTrackingPage from '@/pages/production/ProductionTrackingPage';
 import AttendancePage from '@/pages/payroll/AttendancePage';
+import PaymentsPage from '@/pages/payroll/PaymentsPage';
 import ReportsPage from '@/pages/reports/ReportsPage';
 import CompanySettingsPage from '@/pages/settings/CompanySettingsPage';
 import UsersSettingsPage from '@/pages/settings/UsersSettingsPage';
+
+import RolesSettingsPage from '@/pages/settings/RolesSettingsPage';
+import SuperAdminDashboard from '@/pages/admin/SuperAdminDashboard';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -56,41 +62,36 @@ function AppLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Placeholder({ title }: { title: string }) {
-  return (
-    <div className="flex h-full items-center justify-center">
-      <div className="text-center">
-        <h2 className="text-2xl font-semibold text-foreground">{title}</h2>
-        <p className="mt-2 text-sm text-muted-foreground">This module is currently under development.</p>
-      </div>
-    </div>
-  );
-}
+import RegisterPage from '@/pages/auth/RegisterPage';
+import LandingPage from '@/pages/LandingPage';
 
 export default function App() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
 
   return (
     <Routes>
       <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} />
-      <Route path="/" element={!isAuthenticated ? <Navigate to="/login" replace /> : <Navigate to="/dashboard" replace />} />
+      <Route path="/register" element={isAuthenticated ? <Navigate to="/" replace /> : <RegisterPage />} />
+      <Route path="/" element={!isAuthenticated ? <LandingPage /> : user?.role === 'super_admin' ? <Navigate to="/super-admin/dashboard" replace /> : <Navigate to="/dashboard" replace />} />
       <Route path="/dashboard" element={<ProtectedRoute><AppLayout><DashboardPage /></AppLayout></ProtectedRoute>} />
       
       {/* Masters */}
       <Route path="/masters/employees" element={<ProtectedRoute><AppLayout><EmployeesPage /></AppLayout></ProtectedRoute>} />
       <Route path="/masters/products" element={<ProtectedRoute><AppLayout><ProductsPage /></AppLayout></ProtectedRoute>} />
       <Route path="/masters/categories" element={<ProtectedRoute><AppLayout><MastersListPage /></AppLayout></ProtectedRoute>} />
-      <Route path="/masters/designs" element={<ProtectedRoute><AppLayout><MastersListPage /></AppLayout></ProtectedRoute>} />
+      <Route path="/masters/designs" element={<ProtectedRoute><AppLayout><DesignsPage /></AppLayout></ProtectedRoute>} />
       <Route path="/masters/fabrics" element={<ProtectedRoute><AppLayout><MastersListPage /></AppLayout></ProtectedRoute>} />
-      <Route path="/masters/sizes" element={<ProtectedRoute><AppLayout><MastersListPage /></AppLayout></ProtectedRoute>} />
+      <Route path="/masters/services" element={<ProtectedRoute><AppLayout><MastersListPage /></AppLayout></ProtectedRoute>} />
 
       {/* Production */}
       <Route path="/production/lots" element={<ProtectedRoute><AppLayout><LotsPage /></AppLayout></ProtectedRoute>} />
       <Route path="/production/scanner" element={<ProtectedRoute><AppLayout><ScannerPage /></AppLayout></ProtectedRoute>} />
-      <Route path="/production/tracking" element={<ProtectedRoute><AppLayout><Placeholder title="Process Tracking" /></AppLayout></ProtectedRoute>} />
+      <Route path="/production/tracking" element={<ProtectedRoute><AppLayout><ProductionTrackingPage /></AppLayout></ProtectedRoute>} />
 
       {/* Payroll */}
       <Route path="/payroll/attendance" element={<ProtectedRoute><AppLayout><AttendancePage /></AppLayout></ProtectedRoute>} />
+      <Route path="/payroll/payments" element={<ProtectedRoute><AppLayout><PaymentsPage /></AppLayout></ProtectedRoute>} />
 
       {/* Reports */}
       <Route path="/reports/production" element={<ProtectedRoute><AppLayout><ReportsPage /></AppLayout></ProtectedRoute>} />
@@ -99,7 +100,10 @@ export default function App() {
       {/* Settings */}
       <Route path="/settings/company" element={<ProtectedRoute><AppLayout><CompanySettingsPage /></AppLayout></ProtectedRoute>} />
       <Route path="/settings/users" element={<ProtectedRoute><AppLayout><UsersSettingsPage /></AppLayout></ProtectedRoute>} />
-      <Route path="/settings/roles" element={<ProtectedRoute><AppLayout><Placeholder title="Role Management" /></AppLayout></ProtectedRoute>} />
+      <Route path="/settings/roles" element={<ProtectedRoute><AppLayout><RolesSettingsPage /></AppLayout></ProtectedRoute>} />
+
+      {/* Super Admin */}
+      <Route path="/super-admin/dashboard" element={<ProtectedRoute><AppLayout><SuperAdminDashboard /></AppLayout></ProtectedRoute>} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

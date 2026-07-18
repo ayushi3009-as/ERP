@@ -206,7 +206,7 @@ export default function AccountsPage() {
     },
   });
 
-  const accounts = data?.data || [];
+  const accounts = data?.items || [];
   const tree = useMemo(() => buildTree(accounts), [accounts]);
 
   function resetForm() {

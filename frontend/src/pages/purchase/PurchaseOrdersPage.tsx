@@ -529,7 +529,7 @@ export default function PurchaseOrdersPage() {
           ) : (
             <DataTable
               columns={columns}
-              data={data?.data || []}
+              data={data?.items || []}
               loading={isLoading}
               emptyMessage="No purchase orders found. Create your first PO to get started."
               pageSize={20}

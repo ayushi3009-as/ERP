@@ -208,6 +208,11 @@ class User(TimestampMixin, Base):
     last_login = Column(DateTime(timezone=True), nullable=True)
     failed_attempts = Column(Integer, default=0)
     locked_until = Column(DateTime(timezone=True), nullable=True)
+    
+    # Operator specific fields
+    employee_id = Column(String(50), nullable=True)
+    barcode = Column(String(255), nullable=True)
+    joined_date = Column(Date, nullable=True)
 
     sessions = relationship(
         "UserSession",
@@ -261,6 +266,14 @@ class Company(TimestampMixin, Base):
     financial_year_end = Column(String(10), default="03-31")
     currency = Column(String(3), default="INR")
     settings = Column(JSON, default=dict)
+    
+    # SaaS Multi-Tenancy Fields
+    is_approved = Column(Boolean, default=False)
+    subscription_plan = Column(String(50), default="trial")
+    subscription_expiry = Column(DateTime(timezone=True), nullable=True)
+    tenant_status = Column(String(50), default="pending")
+    payment_screenshot_url = Column(String(500), nullable=True)
+    rejection_reason = Column(Text, nullable=True)
 
 
 class NumberSeries(FactoryScopedMixin, Base):
@@ -309,6 +322,14 @@ class Product(CompanyScopedMixin, Base):
     category = relationship('Category')
     fabric = relationship('Fabric')
 
+    @property
+    def category_name(self):
+        return self.category.name if self.category else None
+
+    @property
+    def fabric_name(self):
+        return self.fabric.name if self.fabric else None
+
 class Design(CompanyScopedMixin, Base):
     __tablename__ = 'designs'
     id = Column(Integer, primary_key=True, index=True)
@@ -323,6 +344,18 @@ class Design(CompanyScopedMixin, Base):
     product = relationship('Product')
     category = relationship('Category')
     fabric = relationship('Fabric')
+
+    @property
+    def product_name(self):
+        return self.product.name if self.product else None
+
+    @property
+    def category_name(self):
+        return self.category.name if self.category else None
+
+    @property
+    def fabric_name(self):
+        return self.fabric.name if self.fabric else None
 
 class Lot(FactoryScopedMixin, Base):
     __tablename__ = 'lots'
@@ -360,6 +393,7 @@ class InternalPayment(FactoryScopedMixin, Base):
     id = Column(Integer, primary_key=True, index=True)
     payment_id = Column(String(100), unique=True, nullable=False)
     payment_date = Column(DateTime(timezone=True), default=func.now())
+    employee_name = Column(String(200), nullable=False, default='')
     payment_type = Column(String(100), nullable=False)
     amount = Column(Numeric(15, 2), nullable=False, default=0)
     remarks = Column(Text, nullable=True)
@@ -372,3 +406,20 @@ class Attendance(FactoryScopedMixin, Base):
     status = Column(String(50), nullable=False)
     scan_type = Column(String(50), nullable=True) # barcode, manual
     shift = Column(String(50), nullable=True)
+
+
+class AuditLog(Base):
+    __tablename__ = 'audit_logs'
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=True)
+    action = Column(String(255), nullable=False)
+    module = Column(String(50), nullable=True)
+    record_id = Column(String(50), nullable=True)
+    record_type = Column(String(50), nullable=True)
+    old_values = Column(JSON, nullable=True)
+    new_values = Column(JSON, nullable=True)
+    timestamp = Column(DateTime(timezone=True), default=func.now(), nullable=False)
+    ip_address = Column(String(45), nullable=True)
+    user_agent = Column(String(500), nullable=True)
+
+    user = relationship('User')

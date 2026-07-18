@@ -66,11 +66,19 @@ def require_role(allowed_roles: List[UserRole]):
     def role_checker(
         current_user: User = Depends(get_current_active_user),
     ) -> User:
-        if current_user.role not in allowed_roles:
+        user_role_val = (current_user.role.value if hasattr(current_user.role, 'value') else str(current_user.role)).lower()
+        allowed_vals = [r.value.lower() for r in allowed_roles]
+        
+        print(f"DEBUG AUTH: user_id={current_user.id} email={current_user.email} db_role={current_user.role}")
+        print(f"DEBUG AUTH: parsed_role={user_role_val} allowed={allowed_vals}")
+        
+        if user_role_val not in allowed_vals:
+            print("DEBUG AUTH: REJECTED! Raising 403.")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Insufficient permissions",
+                detail=f"Insufficient permissions. Has {user_role_val}, needs one of {allowed_vals}",
             )
+        print("DEBUG AUTH: ACCEPTED!")
         return current_user
 
     return role_checker

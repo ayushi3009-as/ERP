@@ -303,7 +303,7 @@ export default function StockLedgerPage() {
           ) : (
             <DataTable
               columns={columns}
-              data={data?.data || []}
+              data={data?.items || []}
               loading={isLoading}
               emptyMessage="No ledger entries found for the selected filters."
               pageSize={50}

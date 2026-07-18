@@ -405,7 +405,7 @@ export default function PurchaseInvoicesPage() {
           ) : (
             <DataTable
               columns={columns}
-              data={data?.data || []}
+              data={data?.items || []}
               loading={isLoading}
               emptyMessage="No purchase invoices found. Create your first invoice to get started."
               pageSize={20}
