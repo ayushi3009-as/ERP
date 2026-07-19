@@ -106,9 +106,11 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const isSuperAdmin = user?.role === 'super_admin';
   const filteredNavigation = navigation.filter(section => {
     if (isSuperAdmin) {
-      return section.title === 'Super Admin';
+      // Super admin sees: Overview, Super Admin, Settings
+      return ['Overview', 'Super Admin', 'Settings'].includes(section.title);
     }
-    return section.title !== 'Super Admin';
+    // Company admin sees everything except Super Admin and Settings
+    return !['Super Admin', 'Settings'].includes(section.title);
   });
 
   const [expandedSections, setExpandedSections] = React.useState<Record<string, boolean>>(() => {
