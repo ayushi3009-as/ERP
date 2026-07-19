@@ -91,7 +91,6 @@ const navigation: NavSection[] = [
     items: [
       { label: 'Company', to: '/settings/company', icon: Building2 },
       { label: 'Users', to: '/settings/users', icon: UserCog },
-      { label: 'Roles', to: '/settings/roles', icon: Shield },
     ],
   },
 ];
