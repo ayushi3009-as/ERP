@@ -23,6 +23,7 @@ import UsersSettingsPage from '@/pages/settings/UsersSettingsPage';
 import RolesSettingsPage from '@/pages/settings/RolesSettingsPage';
 import SuperAdminDashboard from '@/pages/admin/SuperAdminDashboard';
 import PublicLotDetailsPage from '@/pages/public/PublicLotDetailsPage';
+import PublicAttendanceDetailsPage from '@/pages/public/PublicAttendanceDetailsPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -110,6 +111,7 @@ export default function App() {
 
       {/* Public Pages */}
       <Route path="/public/lot/:barcode" element={<PublicLotDetailsPage />} />
+      <Route path="/public/attendance/:barcode" element={<PublicAttendanceDetailsPage />} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

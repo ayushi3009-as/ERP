@@ -48,3 +48,68 @@ def get_public_lot_details(barcode: str, db: Session = Depends(get_db)) -> Any:
         "category_name": category_name,
         "created_at": lot.created_at.isoformat() if lot.created_at else None
     }
+
+@router.get("/attendance/{barcode}")
+def get_public_attendance_scan(barcode: str, db: Session = Depends(get_db)) -> Any:
+    """
+    Public QR Scanner endpoint for Employee Attendance.
+    Scanning the QR marks the employee PRESENT for today instantly.
+    """
+    from app.models.models import User, Attendance, BarcodeScanHistory
+    from datetime import date
+
+    employee = db.query(User).filter(User.barcode == barcode.strip(), User.is_deleted == False).first()
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee barcode not found")
+
+    today = date.today()
+    existing = db.query(Attendance).filter(
+        Attendance.employee_id == employee.id,
+        Attendance.date == today
+    ).first()
+
+    status_msg = ""
+    if existing:
+        if existing.status == "PRESENT":
+            existing.status = "CHECK_OUT"
+            status_msg = "CHECK_OUT"
+            msg = f"Check-Out logged for {employee.full_name}"
+        else:
+            existing.status = "PRESENT"
+            status_msg = "PRESENT"
+            msg = f"Check-In logged for {employee.full_name}"
+    else:
+        new_att = Attendance(
+            employee_id=employee.id,
+            date=today,
+            status="PRESENT",
+            scan_type="BARCODE",
+            company_id=employee.company_id,
+            factory_id=employee.factory_id or 1
+        )
+        db.add(new_att)
+        status_msg = "PRESENT"
+        msg = f"Check-In logged for {employee.full_name}"
+
+    # Record history
+    history = BarcodeScanHistory(
+        barcode=barcode,
+        scan_type="employee",
+        scanned_by=employee.id,
+        process_stage=status_msg,
+        factory_id=employee.factory_id or 1,
+        company_id=employee.company_id,
+        remarks=msg
+    )
+    db.add(history)
+    db.commit()
+
+    return {
+        "success": True,
+        "employee_name": employee.full_name,
+        "employee_id": employee.employee_id or "N/A",
+        "department": str(employee.role.value).replace("_", " ").title() if hasattr(employee.role, 'value') else str(employee.role).replace("_", " ").title(),
+        "status": status_msg,
+        "date": today.isoformat(),
+        "message": msg
+    }

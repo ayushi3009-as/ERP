@@ -179,10 +179,15 @@ export default function EmployeesPage() {
     },
     {
       accessorKey: 'role',
-      header: 'Role',
-      cell: ({ row }) => (
-        <Badge variant="outline">{row.getValue('role')}</Badge>
-      ),
+      header: 'Department',
+      cell: ({ row }) => {
+        const val = String(row.getValue('role') || 'Worker').replace("_", " ").toLowerCase();
+        return (
+          <Badge variant="outline" className="capitalize">
+            {val}
+          </Badge>
+        );
+      },
     },
     {
       accessorKey: 'email',
@@ -285,9 +290,21 @@ export default function EmployeesPage() {
               <Input label="Email" type="email" placeholder="john@example.com" {...register('email')} error={errors.email?.message} />
               <Input label="Phone (Optional)" placeholder="+1234567890" {...register('phone')} />
               <Input label="Barcode (Optional)" placeholder="Leave empty for auto-generate" {...register('barcode')} />
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Role</label>
-                <Input placeholder="Enter role (e.g. Worker, Operator)" {...register('role')} />
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Department / Role</label>
+                <select 
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  {...register('role')}
+                >
+                  <option value="STITCHING">Stitching Department</option>
+                  <option value="CUTTING">Cutting Department</option>
+                  <option value="CHECKING">Checking Department</option>
+                  <option value="FINISHING">Finishing Department</option>
+                  <option value="PACKING">Packing Department</option>
+                  <option value="IRONING">Ironing Department</option>
+                  <option value="SUPERVISOR">Supervisor / Manager</option>
+                  <option value="ADMIN">HR / Payroll Admin</option>
+                </select>
                 {errors.role && <p className="text-xs text-red-500">{errors.role.message}</p>}
               </div>
             </div>
@@ -307,15 +324,15 @@ export default function EmployeesPage() {
             <DialogTitle className="text-center w-full">{selectedBarcode?.name}</DialogTitle>
           </DialogHeader>
           <div className="py-6 flex flex-col items-center">
-            {/* Mocking a visual barcode for demonstration using SVG paths or simple CSS borders */}
-            <div className="flex h-16 w-full max-w-[200px] bg-black bg-opacity-90 rounded-sm mb-4 px-2 items-center justify-between overflow-hidden">
-               {/* Just random vertical bars to look like a barcode */}
-               {Array.from({length: 40}).map((_, i) => (
-                 <div key={i} className={`h-12 bg-white ${Math.random() > 0.5 ? 'w-1' : (Math.random() > 0.8 ? 'w-2' : 'w-0.5')}`}></div>
-               ))}
-            </div>
-            <p className="font-mono text-lg font-bold tracking-widest">{selectedBarcode?.code}</p>
-            <p className="text-xs text-muted-foreground mt-2">Use this code for factory attendance.</p>
+            {selectedBarcode?.code ? (
+              <img
+                src={`https://bwipjs-api.metafloor.com/?bcid=qrcode&text=${encodeURIComponent('https://erp.microtechnique.in/public/attendance/' + selectedBarcode.code)}&scale=3`}
+                alt={selectedBarcode.name}
+                className="w-32 h-32 object-contain mb-4"
+              />
+            ) : null}
+            <p className="font-mono text-sm font-bold tracking-widest">{selectedBarcode?.code || 'NO BARCODE'}</p>
+            <p className="text-xs text-muted-foreground mt-2">Scan this ID card with a phone to log attendance instantly.</p>
           </div>
           <DialogFooter className="w-full sm:justify-center">
             <Button variant="outline" onClick={() => window.print()}>Print ID Card</Button>
