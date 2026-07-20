@@ -102,7 +102,7 @@ export default function EmployeesPage() {
       resetForm();
     },
     onError: (error: any) => {
-      alert(error.response?.data?.detail || "Failed to update employee. Barcode, email or username might already be in use.");
+      alert(error.response?.data?.detail || "Failed to update employee.");
     }
   });
 
