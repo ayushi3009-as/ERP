@@ -22,6 +22,7 @@ import UsersSettingsPage from '@/pages/settings/UsersSettingsPage';
 
 import RolesSettingsPage from '@/pages/settings/RolesSettingsPage';
 import SuperAdminDashboard from '@/pages/admin/SuperAdminDashboard';
+import PublicLotDetailsPage from '@/pages/public/PublicLotDetailsPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -106,6 +107,9 @@ export default function App() {
 
       {/* Super Admin */}
       <Route path="/super-admin/dashboard" element={<ProtectedRoute><AppLayout><SuperAdminDashboard /></AppLayout></ProtectedRoute>} />
+
+      {/* Public Pages */}
+      <Route path="/public/lot/:barcode" element={<PublicLotDetailsPage />} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

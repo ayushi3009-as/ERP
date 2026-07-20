@@ -18,11 +18,13 @@ from app.api.v1.endpoints import (
     attendance,
     services,
     payments,
-    settings
+    settings,
+    public
 )
 
 api_router = APIRouter()
 
+api_router.include_router(public.router, prefix="/public", tags=["Public"])
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
 api_router.include_router(tenant.router, prefix="/tenant", tags=["tenant"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
