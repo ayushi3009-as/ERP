@@ -100,7 +100,7 @@ export default function CompanySettingsPage() {
   const { data: company, isLoading: companyLoading, isError: companyError } = useQuery({
     queryKey: ['company'],
     queryFn: async () => {
-      const { data } = await api.get<Company>('/v1/company');
+      const { data } = await api.get<Company>('/v1/company/');
       return data;
     },
   });
@@ -108,7 +108,7 @@ export default function CompanySettingsPage() {
   const { data: numberSeries, isLoading: seriesLoading } = useQuery({
     queryKey: ['number-series'],
     queryFn: async () => {
-      const { data } = await api.get<NumberSeriesFormData[]>('/v1/number-series');
+      const { data } = await api.get<NumberSeriesFormData[]>('/v1/number-series/');
       return data;
     },
     enabled: activeTab === 'number-series',
@@ -117,7 +117,7 @@ export default function CompanySettingsPage() {
   const { data: emailSettings } = useQuery({
     queryKey: ['settings', 'email'],
     queryFn: async () => {
-      const { data } = await api.get<EmailFormData>('/v1/settings/email');
+      const { data } = await api.get<EmailFormData>('/v1/settings/email/');
       return data;
     },
     enabled: activeTab === 'email',
@@ -126,7 +126,7 @@ export default function CompanySettingsPage() {
   const { data: whatsappSettings } = useQuery({
     queryKey: ['settings', 'whatsapp'],
     queryFn: async () => {
-      const { data } = await api.get<WhatsappFormData>('/v1/settings/whatsapp');
+      const { data } = await api.get<WhatsappFormData>('/v1/settings/whatsapp/');
       return data;
     },
     enabled: activeTab === 'whatsapp',
@@ -135,7 +135,7 @@ export default function CompanySettingsPage() {
   const { data: printerSettings } = useQuery({
     queryKey: ['settings', 'printers'],
     queryFn: async () => {
-      const { data } = await api.get<PrinterFormData[]>('/v1/settings/printers');
+      const { data } = await api.get<PrinterFormData[]>('/v1/settings/printers/');
       return data;
     },
     enabled: activeTab === 'printer',
@@ -143,7 +143,7 @@ export default function CompanySettingsPage() {
 
   const updateCompanyMutation = useMutation({
     mutationFn: async (values: CompanyFormData) => {
-      const { data } = await api.put('/v1/company', values);
+      const { data } = await api.put('/v1/company/', values);
       return data;
     },
     onSuccess: () => {
