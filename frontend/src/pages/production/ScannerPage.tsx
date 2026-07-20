@@ -73,8 +73,9 @@ export default function ScannerPage() {
       'reader',
       { 
         fps: 10, 
-        qrbox: { width: 250, height: 150 },
-        aspectRatio: 1.777778
+        qrbox: { width: 260, height: 130 },
+        aspectRatio: 1.777778,
+        formatsToSupport: [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 ] // Supports all formats (QR, Code128, Code39, UPC, EAN, etc.)
       },
       false
     );
