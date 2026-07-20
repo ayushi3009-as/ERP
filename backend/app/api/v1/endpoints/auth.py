@@ -248,7 +248,8 @@ def refresh_token(
             detail="Refresh token revoked or not found",
         )
 
-    if session.expires_at < datetime.utcnow():
+    from datetime import timezone
+    if session.expires_at < datetime.now(timezone.utc):
         session.is_revoked = True
         db.commit()
         raise HTTPException(

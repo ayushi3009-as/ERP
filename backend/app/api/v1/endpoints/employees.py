@@ -94,6 +94,21 @@ def update_employee(
     if not db_user:
         raise HTTPException(status_code=404, detail="Employee not found")
 
+    # Validate email uniqueness if changed
+    if employee_in.email and employee_in.email != db_user.email:
+        if db.query(User).filter(User.email == employee_in.email).first():
+            raise HTTPException(status_code=400, detail="Email is already registered by another user")
+            
+    # Validate username uniqueness if changed
+    if employee_in.username and employee_in.username != db_user.username:
+        if db.query(User).filter(User.username == employee_in.username).first():
+            raise HTTPException(status_code=400, detail="Username is already taken by another user")
+
+    # Validate barcode uniqueness if changed
+    if employee_in.barcode and employee_in.barcode != db_user.barcode:
+        if db.query(User).filter(User.barcode == employee_in.barcode).first():
+            raise HTTPException(status_code=400, detail="Barcode is already assigned to another employee")
+
     update_data = employee_in.dict(exclude_unset=True)
     if "role" in update_data and update_data["role"]:
         db_user.role = UserRole.OPERATOR if update_data["role"].lower() == "operator" else UserRole.WORKER
@@ -113,7 +128,7 @@ def update_employee(
         return db_user
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status_code=400, detail="A user with this email, username, or barcode already exists")
+        raise HTTPException(status_code=400, detail="Failed to save update. Field constraint conflict.")
 
 @router.delete("/{user_id}")
 def delete_employee(
