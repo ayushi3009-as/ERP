@@ -297,8 +297,26 @@ export default function LotsPage() {
     },
     {
       accessorKey: 'barcode',
-      header: 'Barcode UUID',
-      cell: ({ row }) => <span className="font-mono text-xs text-muted-foreground">{row.getValue('barcode')}</span>,
+      header: 'Barcode',
+      cell: ({ row }) => {
+        const lot = row.original;
+        const scanValue = lot.lot_number || lot.barcode || '';
+        return (
+          <div
+            className="flex flex-col items-center gap-1 cursor-pointer group"
+            title={`Lot: ${lot.lot_number} | Size: ${lot.size} | Qty: ${lot.quantity}`}
+            onClick={() => { setPrintLot(lot); setPrintDialogOpen(true); }}
+          >
+            <img
+              src={`https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(scanValue)}&scale=2&rotate=N&includeText=false&paddingheight=4`}
+              alt={scanValue}
+              className="h-9 w-28 object-contain group-hover:opacity-80 transition-opacity"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
+            <span className="font-mono text-[10px] text-muted-foreground">{lot.lot_number}</span>
+          </div>
+        );
+      },
     },
     {
       accessorKey: 'size_qty',
@@ -510,19 +528,26 @@ export default function LotsPage() {
             <DialogTitle>Print Production Lot Label</DialogTitle>
           </DialogHeader>
           {printLot && (
-            <div className="flex flex-col items-center justify-center p-6 bg-accent/25 rounded-lg border border-border border-dashed space-y-4">
-              <div className="border border-black p-4 bg-white rounded flex flex-col items-center justify-center w-[280px] shadow-sm">
+          <div className="flex flex-col items-center justify-center p-6 bg-accent/25 rounded-lg border border-border border-dashed space-y-4">
+              <div className="border border-black p-4 bg-white rounded flex flex-col items-center justify-center w-[280px] shadow-sm gap-2">
                 <div className="font-bold text-sm text-black tracking-widest">MICROTECHNIQUE</div>
-                <div className="text-[9px] text-gray-500 font-semibold mb-3">PRODUCTION LOT LABEL</div>
+                <div className="text-[9px] text-gray-500 font-semibold">PRODUCTION LOT LABEL</div>
                 <img
-                  className="h-16 w-full object-contain mb-2"
+                  className="h-16 w-full object-contain my-1"
                   src={`https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(printLot.lot_number)}&scale=2&rotate=N&includeText=true`}
                   alt={printLot.lot_number}
                 />
-                <div className="w-full flex justify-between text-[10px] font-bold text-black border-t border-gray-200 pt-2">
-                  <div>SIZE: {printLot.size}</div>
-                  <div>QTY: {printLot.quantity} PCS</div>
-                  <div className="uppercase">STAGE: {printLot.current_process}</div>
+                <div className="w-full grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] text-black border-t border-gray-200 pt-2">
+                  <div><span className="text-gray-500">Lot #:</span> <span className="font-bold">{printLot.lot_number}</span></div>
+                  <div><span className="text-gray-500">Size:</span> <span className="font-bold">{printLot.size}</span></div>
+                  <div><span className="text-gray-500">Qty:</span> <span className="font-bold">{printLot.quantity} pcs</span></div>
+                  <div><span className="text-gray-500">Stage:</span> <span className="font-bold uppercase">{printLot.current_process}</span></div>
+                  {printLot.design_number && (
+                    <div className="col-span-2"><span className="text-gray-500">Design #:</span> <span className="font-bold">{printLot.design_number}</span></div>
+                  )}
+                  {printLot.product_name && (
+                    <div className="col-span-2"><span className="text-gray-500">Product:</span> <span className="font-bold">{printLot.product_name}</span></div>
+                  )}
                 </div>
               </div>
               <p className="text-xs text-muted-foreground text-center">
