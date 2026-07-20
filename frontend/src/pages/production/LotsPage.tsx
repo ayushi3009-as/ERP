@@ -308,9 +308,9 @@ export default function LotsPage() {
             onClick={() => { setPrintLot(lot); setPrintDialogOpen(true); }}
           >
             <img
-              src={`https://bwipjs-api.metafloor.com/?bcid=qrcode&text=${encodeURIComponent(scanValue)}&scale=2`}
+              src={`https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(scanValue)}&scale=2&rotate=N&includeText=false&paddingheight=4`}
               alt={scanValue}
-              className="h-10 w-10 object-contain group-hover:opacity-80 transition-opacity"
+              className="h-9 w-40 object-contain group-hover:opacity-80 transition-opacity"
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
             <span className="font-mono text-[9px] text-muted-foreground max-w-[150px] truncate">{scanValue}</span>
@@ -533,8 +533,8 @@ export default function LotsPage() {
                 <div className="font-bold text-sm text-black tracking-widest">MICROTECHNIQUE</div>
                 <div className="text-[9px] text-gray-500 font-semibold">PRODUCTION LOT LABEL</div>
                 <img
-                  className="h-20 w-20 object-contain my-2"
-                  src={`https://bwipjs-api.metafloor.com/?bcid=qrcode&text=${encodeURIComponent(printLot.barcode || printLot.lot_number)}&scale=2`}
+                  className="h-16 w-full object-contain my-1"
+                  src={`https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(printLot.barcode || printLot.lot_number)}&scale=2&rotate=N&includeText=true`}
                   alt={printLot.lot_number}
                 />
                 <div className="w-full grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] text-black border-t border-gray-200 pt-2">
