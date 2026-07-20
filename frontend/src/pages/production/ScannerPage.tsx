@@ -69,31 +69,54 @@ export default function ScannerPage() {
   useEffect(() => {
     if (!useCamera) return;
 
-    const scanner = new Html5QrcodeScanner(
-      'reader',
-      { 
-        fps: 10, 
-        qrbox: { width: 260, height: 130 },
-        aspectRatio: 1.777778,
-        formatsToSupport: [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 ] // Supports all formats (QR, Code128, Code39, UPC, EAN, etc.)
-      },
-      false
-    );
+    let html5Qrcode: any = null;
 
-    const onScanSuccess = async (decodedText: string) => {
-      scanner.clear();
-      setUseCamera(false);
-      await triggerScanRequest(decodedText);
+    const startScanner = async () => {
+      try {
+        const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import('html5-qrcode');
+        html5Qrcode = new Html5Qrcode('reader');
+
+        const config = {
+          fps: 10,
+          qrbox: (width: number, height: number) => {
+            // Wider scan box optimized for linear 1D barcodes on mobile devices
+            const widthOffset = width > 400 ? 300 : 250;
+            return { width: widthOffset, height: 100 };
+          },
+          formatsToSupport: [
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.UPC_A,
+            Html5QrcodeSupportedFormats.QR_CODE
+          ]
+        };
+
+        await html5Qrcode.start(
+          { facingMode: 'environment' }, // Uses rear camera on phones
+          config,
+          async (decodedText: string) => {
+            if (html5Qrcode) {
+              await html5Qrcode.stop();
+            }
+            setUseCamera(false);
+            await triggerScanRequest(decodedText);
+          },
+          (errorMessage: string) => {
+            // quiet fail, video scan iteration
+          }
+        );
+      } catch (err) {
+        console.error("Scanner failed to start", err);
+      }
     };
 
-    const onScanFailure = (error: any) => {
-      // quiet fail, typical for html5-qrcode video streams
-    };
-
-    scanner.render(onScanSuccess, onScanFailure);
+    startScanner();
 
     return () => {
-      scanner.clear().catch(err => console.error("Failed to clear scanner", err));
+      if (html5Qrcode && html5Qrcode.isScanning) {
+        html5Qrcode.stop().catch((err: any) => console.error("Failed to stop scanner", err));
+      }
     };
   }, [useCamera]);
 
