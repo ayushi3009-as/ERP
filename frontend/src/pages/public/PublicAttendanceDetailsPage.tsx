@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { 
   UserCheck, Hash, Layers, Calendar, 
-  Clock, ShieldCheck, AlertCircle, Phone
+  Clock, ShieldCheck, AlertCircle, Phone, Boxes
 } from 'lucide-react';
 import api from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
