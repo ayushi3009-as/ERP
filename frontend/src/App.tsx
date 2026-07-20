@@ -95,7 +95,9 @@ export default function App() {
 
       {/* Reports */}
       <Route path="/reports/production" element={<ProtectedRoute><AppLayout><ReportsPage /></AppLayout></ProtectedRoute>} />
+      <Route path="/reports/attendance" element={<ProtectedRoute><AppLayout><ReportsPage /></AppLayout></ProtectedRoute>} />
       <Route path="/reports/scans" element={<ProtectedRoute><AppLayout><ReportsPage /></AppLayout></ProtectedRoute>} />
+      <Route path="/reports/payments" element={<ProtectedRoute><AppLayout><ReportsPage /></AppLayout></ProtectedRoute>} />
 
       {/* Settings */}
       <Route path="/settings/company" element={<ProtectedRoute><AppLayout><CompanySettingsPage /></AppLayout></ProtectedRoute>} />

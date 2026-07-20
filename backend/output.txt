@@ -1,0 +1,152 @@
+Manufacturing ERP — Specification
+Internal Use Only — No Customer, Sales, Vendor, or Warehouse Modules
+Purpose
+This ERP is built solely for the company's internal manufacturing operations. It will be used only by company employees. The entire production flow is managed through Design Number, Lot Number, Barcode/QR Code, and Employee Tracking. Every product has its own Design, every production batch has its own Lot Number, and every Lot can be scanned via Barcode/QR Code to instantly track its current production stage, size, quantity, and progress. There is no Customer, Sales, Vendor, or Warehouse module of any kind, since this system is customized purely for internal manufacturing management.
+Modules
+1. Dashboard
+Today's Production
+Pending Lots
+Completed Lots
+Active Employees
+Machine Status
+Today's Attendance
+Production Progress
+2. Category Master
+Category Name
+Description
+Status
+3. Product Master
+Product Code
+Product Name
+Category
+Fabric
+Available Sizes
+Product Image
+Status
+4. Design Master
+For the company's own in-house designs.
+Design Number (Auto Generate)
+Design Name
+Product
+Category
+Fabric
+Design Image
+Version
+Status
+5. Fabric Master
+Fabric Name
+Fabric Type
+GSM
+Composition
+Color
+Status
+6. Size Master
+XS
+S
+M
+L
+XL
+XXL
+XXXL
+Free Size
+7. Lot Master
+For every production batch.
+Lot Number (Auto Generate)
+Design Number
+Product
+Size
+Quantity
+Barcode / QR Code
+Current Process
+Created Date
+Status
+8. Employee Master
+Employee ID
+Employee Name
+Department
+Designation
+Mobile Number
+Shift
+Employee Photo
+Employee Barcode / QR Code
+Joining Date
+Status
+9. Barcode & Scanner Module
+The most critical part of this ERP.
+Features
+Product Barcode Generation
+Lot Barcode Generation
+Employee Barcode
+Design Barcode
+QR Code Support
+USB Barcode Scanner Support
+Wireless Barcode Scanner Support
+Mobile Camera Barcode Scanner
+Instant Scan History
+Barcode Printing
+Scanner Used For
+Lot Scan
+Product Scan
+Employee Scan
+Production Process Scan
+Attendance Scan
+Finished Goods Scan
+Whenever a barcode is scanned, the following appear instantly:
+Lot Details
+Design Number
+Size
+Current Production Stage
+Quantity
+10. Production Process
+Each stage is advanced by scanning the barcode into the next process.
+Cutting
+Stitching
+Printing
+Embroidery
+Washing
+Finishing
+Packing
+11. Attendance
+Barcode Scan
+QR Scan
+Manual Entry
+Daily Attendance
+Shift Attendance
+12. Services
+For any process handled by an external service provider.
+Service Name
+Process
+Rate
+Remarks
+13. Payment
+Internal payment records only.
+Payment ID
+Payment Date
+Payment Type
+Amount
+Remarks
+14. Reports
+Production Report
+Lot Report
+Employee Report
+Attendance Report
+Design Report
+Fabric Consumption Report
+Barcode Scan History
+Daily Production Report
+Monthly Production Report
+Explicitly Excluded
+✕ Customer Master
+✕ Supplier Master
+✕ Vendor Master
+✕ Sales Module
+✕ CRM
+✕ Quotation
+✕ Invoice
+✕ Purchase Order (unless explicitly requested by the company)
+✕ Warehouse
+✕ Dispatch
+✕ Delivery Challan
+✕ Dealer Module
+✕ Retail Module
+✕ E-commerce Integration

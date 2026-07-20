@@ -121,11 +121,15 @@ export default function ReportsPage() {
 
   // Auto-select report based on URL
   useEffect(() => {
-    if (location.pathname.includes('/reports/production')) {
-      const rep = REPORTS.find(r => r.id === 'production');
-      if (rep) setSelectedReport(rep);
-    } else if (location.pathname.includes('/reports/scans')) {
-      const rep = REPORTS.find(r => r.id === 'scan-history');
+    const pathMap: Record<string, string> = {
+      '/reports/production': 'production',
+      '/reports/attendance': 'attendance',
+      '/reports/scans': 'scan-history',
+      '/reports/payments': 'payments',
+    };
+    const matched = Object.entries(pathMap).find(([path]) => location.pathname.includes(path));
+    if (matched) {
+      const rep = REPORTS.find(r => r.id === matched[1]);
       if (rep) setSelectedReport(rep);
     }
   }, [location.pathname]);

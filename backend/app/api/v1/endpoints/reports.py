@@ -1,7 +1,7 @@
 from typing import Any
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func, text
+from sqlalchemy import func
 from app.api.deps import get_db, get_current_user
 from app.models.models import Lot, User, Attendance, Product, Design, InternalPayment, BarcodeScanHistory
 from datetime import datetime
@@ -18,14 +18,15 @@ def get_production_report(
 ) -> Any:
     query = db.query(
         Lot.lot_number,
-        Product.name.label("product_name"),
         Lot.size,
         Lot.quantity,
         Lot.current_process,
-        Lot.status,
-        Lot.created_at
-    ).outerjoin(Product, Lot.product_id == Product.id).filter(
-        Lot.factory_id == current_user.factory_id,
+        Lot.created_at,
+        Product.name.label("product_name"),
+        Design.design_number.label("design_number"),
+    ).outerjoin(Product, Lot.product_id == Product.id)\
+     .outerjoin(Design, Lot.design_id == Design.id)\
+     .filter(
         Lot.company_id == current_user.company_id,
         Lot.is_deleted == False
     )
@@ -45,16 +46,17 @@ def get_production_report(
             query = query.filter(Lot.created_at <= dt)
         except ValueError:
             pass
-        
+
     results = query.order_by(Lot.created_at.desc()).all()
     data = [
         {
-            "lot_number": r.lot_number,
+            "lot_number": r.lot_number or "N/A",
             "product_name": r.product_name or "N/A",
+            "design_number": r.design_number or "N/A",
             "size": r.size or "N/A",
-            "quantity": r.quantity,
-            "current_process": r.current_process or "N/A",
-            "status": r.status or "active",
+            "quantity": r.quantity or 0,
+            "current_process": r.current_process or "Pending",
+            "status": "completed" if r.current_process == "dispatch" else "active",
             "created_at": r.created_at.isoformat() if r.created_at else None
         } for r in results
     ]
@@ -70,12 +72,13 @@ def get_attendance_report(
 ) -> Any:
     query = db.query(
         Attendance.date,
-        User.full_name.label("employee_name"),
-        User.employee_id,
         Attendance.status,
-        Attendance.shift
+        Attendance.shift,
+        Attendance.scan_type,
+        User.full_name.label("employee_name"),
+        User.employee_id.label("employee_code"),
+        User.role.label("department"),
     ).join(User, Attendance.employee_id == User.id).filter(
-        Attendance.factory_id == current_user.factory_id,
         Attendance.company_id == current_user.company_id
     )
 
@@ -94,15 +97,17 @@ def get_attendance_report(
             query = query.filter(Attendance.date <= dt)
         except ValueError:
             pass
-        
+
     results = query.order_by(Attendance.date.desc()).all()
     data = [
         {
             "date": r.date.isoformat() if r.date else None,
             "employee_name": r.employee_name or "N/A",
-            "employee_id": r.employee_id or "N/A",
+            "employee_id": r.employee_code or "N/A",
+            "department": str(r.department or "N/A").replace("_", " ").title(),
             "status": r.status or "N/A",
-            "shift": r.shift or "N/A"
+            "shift": r.shift or "General",
+            "scan_type": r.scan_type or "Manual",
         } for r in results
     ]
     return {"data": data, "total": len(data)}
@@ -117,10 +122,10 @@ def get_scan_history_report(
         BarcodeScanHistory.created_at,
         BarcodeScanHistory.barcode,
         BarcodeScanHistory.scan_type,
+        BarcodeScanHistory.process_stage,
+        BarcodeScanHistory.remarks,
         User.full_name.label("scanned_by_name"),
-        BarcodeScanHistory.process_stage
     ).outerjoin(User, BarcodeScanHistory.scanned_by == User.id).filter(
-        BarcodeScanHistory.factory_id == current_user.factory_id,
         BarcodeScanHistory.company_id == current_user.company_id
     )
 
@@ -134,7 +139,8 @@ def get_scan_history_report(
             "barcode": r.barcode,
             "scan_type": r.scan_type or "N/A",
             "scanned_by_name": r.scanned_by_name or "System",
-            "process_recorded": r.process_stage or "N/A"
+            "process_recorded": r.process_stage or "N/A",
+            "remarks": r.remarks or "",
         } for r in results
     ]
     return {"data": data, "total": len(data)}
@@ -150,9 +156,13 @@ def get_employee_report(
         User.full_name.label("name"),
         User.role,
         User.phone,
+        User.email,
+        User.joined_date,
         User.is_active,
-        User.created_at
-    ).filter(User.factory_id == current_user.factory_id, User.company_id == current_user.company_id, User.role != 'admin')
+    ).filter(
+        User.company_id == current_user.company_id,
+        User.role.notin_(['super_admin', 'company_admin'])
+    )
 
     if search:
         query = query.filter(User.full_name.ilike(f"%{search}%"))
@@ -162,8 +172,10 @@ def get_employee_report(
         {
             "employee_id": r.employee_id or "N/A",
             "name": r.name or "N/A",
-            "department": str(r.role or "N/A").capitalize(),
+            "department": str(r.role or "N/A").replace("_", " ").title(),
             "designation": r.phone or "N/A",
+            "email": r.email or "N/A",
+            "joined_date": r.joined_date.isoformat() if r.joined_date else None,
             "status": "active" if r.is_active else "inactive",
         } for r in results
     ]
@@ -180,11 +192,12 @@ def get_payments_report(
         InternalPayment.payment_id,
         InternalPayment.employee_name,
         InternalPayment.payment_type,
-        InternalPayment.amount
-    ).filter(InternalPayment.factory_id == current_user.factory_id, InternalPayment.company_id == current_user.company_id)
+        InternalPayment.amount,
+        InternalPayment.remarks,
+    ).filter(InternalPayment.company_id == current_user.company_id)
 
     if search:
-        query = query.filter(InternalPayment.payment_id.ilike(f"%{search}%"))
+        query = query.filter(InternalPayment.employee_name.ilike(f"%{search}%"))
 
     results = query.order_by(InternalPayment.payment_date.desc()).all()
     data = [
@@ -193,7 +206,8 @@ def get_payments_report(
             "payment_id": r.payment_id,
             "employee_name": r.employee_name or "N/A",
             "payment_type": r.payment_type,
-            "amount": float(r.amount) if r.amount else 0
+            "amount": float(r.amount) if r.amount else 0,
+            "remarks": r.remarks or "",
         } for r in results
     ]
     return {"data": data, "total": len(data)}

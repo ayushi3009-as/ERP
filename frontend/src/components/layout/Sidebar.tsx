@@ -83,7 +83,9 @@ const navigation: NavSection[] = [
     title: 'Reports',
     items: [
       { label: 'Production Reports', to: '/reports/production', icon: FileBarChart },
+      { label: 'Attendance Report', to: '/reports/attendance', icon: UserCheck },
       { label: 'Scan History', to: '/reports/scans', icon: Barcode },
+      { label: 'Payments Report', to: '/reports/payments', icon: Banknote },
     ],
   },
   {
