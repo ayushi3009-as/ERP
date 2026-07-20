@@ -50,7 +50,13 @@ def create_lot(
         count = db.query(Lot).filter(Lot.lot_number.like(f"{prefix}%")).count()
         lot_number = f"{prefix}-{count + 1:04d}"
         
-    barcode_string = lot_in.barcode or str(uuid.uuid4())
+    barcode_string = lot_in.barcode
+    if not barcode_string:
+        # Create a clean, short scannable barcode based on global timestamp + count
+        today = datetime.now()
+        count = db.query(Lot).count()
+        barcode_string = f"LOT-{today.strftime('%y%m%d%H%M')}-{count + 1:03d}"
+        
     current_process = lot_in.current_process or ProductionStage.PLANNING.value
     
     design_id = lot_in.design_id
