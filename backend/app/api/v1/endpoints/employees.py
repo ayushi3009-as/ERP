@@ -58,6 +58,11 @@ def create_employee(
 
     barcode = employee_in.barcode if employee_in.barcode else f"EMP-{uuid.uuid4().hex[:6].upper()}"
 
+    # Extract department from settings payload if provided
+    department_str = None
+    if employee_in.settings and "department" in employee_in.settings:
+        department_str = employee_in.settings["department"]
+
     db_user = User(
         email=employee_in.email,
         username=employee_in.username,
@@ -69,7 +74,7 @@ def create_employee(
         barcode=barcode,
         employee_id=employee_in.employee_id,
         joined_date=employee_in.joined_date,
-        settings=employee_in.settings or {},
+        avatar_url=department_str, # Store department inside avatar_url
         password_hash="DUMMY_HASH", 
         is_active=True,
     )
@@ -114,12 +119,13 @@ def update_employee(
         db_user.role = UserRole.OPERATOR if update_data["role"].lower() == "operator" else UserRole.WORKER
         del update_data["role"]
 
+    # Extract department from settings payload if provided
+    if "settings" in update_data and update_data["settings"] and "department" in update_data["settings"]:
+        db_user.avatar_url = update_data["settings"]["department"]
+        del update_data["settings"]
+
     for field, value in update_data.items():
-        if field == "settings" and value:
-            # Merge settings
-            current_settings = db_user.settings or {}
-            db_user.settings = {**current_settings, **value}
-        else:
+        if field != "settings":
             setattr(db_user, field, value)
 
     try:

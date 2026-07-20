@@ -48,10 +48,10 @@ interface Employee {
   phone: string;
   role: string;
   barcode: string;
-  employee_id?: string;
   joined_date?: string;
   is_active: boolean;
   created_at: string;
+  avatar_url?: string;
   settings?: {
     department?: string;
   };
@@ -141,7 +141,7 @@ export default function EmployeesPage() {
       employee_id: emp.employee_id || '',
       joined_date: emp.joined_date || '',
       barcode: emp.barcode || '',
-      department: emp.settings?.department || 'STITCHING',
+      department: emp.avatar_url || emp.settings?.department || 'STITCHING',
     });
     setDialogOpen(true);
   }
@@ -196,7 +196,7 @@ export default function EmployeesPage() {
       header: 'Department',
       cell: ({ row }) => {
         const emp = row.original;
-        const val = String(emp.settings?.department || emp.role || 'Worker').replace("_", " ").toLowerCase();
+        const val = String(emp.avatar_url || emp.settings?.department || emp.role || 'Worker').replace("_", " ").toLowerCase();
         return (
           <Badge variant="outline" className="capitalize">
             {val}

@@ -124,6 +124,7 @@ class EmployeeResponse(UserResponse, OrmModel):
     barcode: Optional[str] = None
     employee_id: Optional[str] = None
     joined_date: Optional[date] = None
+    avatar_url: Optional[str] = None
     settings: Optional[dict] = None
 
 
