@@ -69,6 +69,7 @@ def create_employee(
         barcode=barcode,
         employee_id=employee_in.employee_id,
         joined_date=employee_in.joined_date,
+        settings=employee_in.settings or {},
         password_hash="DUMMY_HASH", 
         is_active=True,
     )
@@ -99,7 +100,12 @@ def update_employee(
         del update_data["role"]
 
     for field, value in update_data.items():
-        setattr(db_user, field, value)
+        if field == "settings" and value:
+            # Merge settings
+            current_settings = db_user.settings or {}
+            db_user.settings = {**current_settings, **value}
+        else:
+            setattr(db_user, field, value)
 
     try:
         db.commit()

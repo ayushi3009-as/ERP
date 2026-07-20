@@ -34,6 +34,7 @@ const employeeSchema = z.object({
   employee_id: z.string().optional(),
   joined_date: z.string().optional(),
   barcode: z.string().optional(),
+  department: z.string().min(1, 'Department is required'),
 });
 
 type EmployeeFormData = z.infer<typeof employeeSchema>;
@@ -51,6 +52,9 @@ interface Employee {
   joined_date?: string;
   is_active: boolean;
   created_at: string;
+  settings?: {
+    department?: string;
+  };
 }
 
 export default function EmployeesPage() {
@@ -113,11 +117,11 @@ export default function EmployeesPage() {
 
   const { register, handleSubmit, reset, formState: { errors }, setValue, watch } = useForm<EmployeeFormData>({
     resolver: zodResolver(employeeSchema),
-    defaultValues: { role: 'WORKER' },
+    defaultValues: { role: 'WORKER', department: 'STITCHING' },
   });
 
   function resetForm() {
-    reset({ role: 'WORKER', full_name: '', email: '', username: '', phone: '', employee_id: '', joined_date: '', barcode: '' });
+    reset({ role: 'WORKER', department: 'STITCHING', full_name: '', email: '', username: '', phone: '', employee_id: '', joined_date: '', barcode: '' });
     setEditingEmployee(null);
   }
 
@@ -137,6 +141,7 @@ export default function EmployeesPage() {
       employee_id: emp.employee_id || '',
       joined_date: emp.joined_date || '',
       barcode: emp.barcode || '',
+      department: emp.settings?.department || 'STITCHING',
     });
     setDialogOpen(true);
   }
@@ -148,7 +153,16 @@ export default function EmployeesPage() {
   }
 
   function onSubmit(values: EmployeeFormData) {
-    const payload = { ...values } as any;
+    const payload = { 
+      ...values,
+      settings: {
+        department: values.department
+      }
+    } as any;
+    
+    // Delete local form-only field
+    delete payload.department;
+    
     if (!payload.joined_date) payload.joined_date = null;
     if (!payload.employee_id) payload.employee_id = null;
     if (!payload.barcode) payload.barcode = null;
@@ -181,7 +195,8 @@ export default function EmployeesPage() {
       accessorKey: 'role',
       header: 'Department',
       cell: ({ row }) => {
-        const val = String(row.getValue('role') || 'Worker').replace("_", " ").toLowerCase();
+        const emp = row.original;
+        const val = String(emp.settings?.department || emp.role || 'Worker').replace("_", " ").toLowerCase();
         return (
           <Badge variant="outline" className="capitalize">
             {val}
@@ -294,7 +309,7 @@ export default function EmployeesPage() {
                 <label className="text-sm font-medium">Department / Role</label>
                 <select 
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  {...register('role')}
+                  {...register('department')}
                 >
                   <option value="STITCHING">Stitching Department</option>
                   <option value="CUTTING">Cutting Department</option>
@@ -305,7 +320,7 @@ export default function EmployeesPage() {
                   <option value="SUPERVISOR">Supervisor / Manager</option>
                   <option value="ADMIN">HR / Payroll Admin</option>
                 </select>
-                {errors.role && <p className="text-xs text-red-500">{errors.role.message}</p>}
+                {errors.department && <p className="text-xs text-red-500">{errors.department.message}</p>}
               </div>
             </div>
             <DialogFooter>

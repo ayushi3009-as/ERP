@@ -106,6 +106,7 @@ class EmployeeCreate(UserBase):
     barcode: Optional[str] = None
     employee_id: Optional[str] = None
     joined_date: Optional[date] = None
+    settings: Optional[dict] = None
 
 class EmployeeUpdate(BaseModel):
     full_name: Optional[str] = None
@@ -117,11 +118,13 @@ class EmployeeUpdate(BaseModel):
     employee_id: Optional[str] = None
     joined_date: Optional[date] = None
     is_active: Optional[bool] = None
+    settings: Optional[dict] = None
 
 class EmployeeResponse(UserResponse, OrmModel):
     barcode: Optional[str] = None
     employee_id: Optional[str] = None
     joined_date: Optional[date] = None
+    settings: Optional[dict] = None
 
 
 # ==================== MANUFACTURING MASTERS ====================
