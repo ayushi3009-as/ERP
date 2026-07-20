@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import {
@@ -54,10 +54,12 @@ export default function SuperAdminDashboard() {
 
   const [editablePlans, setEditablePlans] = useState<PricingPlan[]>([]);
   
-  // Set editable plans when fetched
-  if (pricingPlans && editablePlans.length === 0) {
-    setEditablePlans(pricingPlans);
-  }
+  // Set editable plans when fetched using useEffect
+  useEffect(() => {
+    if (pricingPlans) {
+      setEditablePlans(pricingPlans);
+    }
+  }, [pricingPlans]);
 
 
   const updateCompanyMutation = useMutation({

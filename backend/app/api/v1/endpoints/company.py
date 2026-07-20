@@ -148,16 +148,38 @@ def get_company(
     current_user=Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ):
+    print(f"DEBUG COMPANY: user_id={current_user.id} role={current_user.role} company_id={current_user.company_id}")
+    
+    # Try fetching the company
+    company = None
     if current_user.role == UserRole.SUPER_ADMIN:
         company = db.query(Company).first()
     else:
-        company = db.query(Company).filter(Company.id == current_user.company_id).first()
+        if current_user.company_id:
+            company = db.query(Company).filter(Company.id == current_user.company_id).first()
         
+        # Fallback to first company if not found for admin roles
+        if not company and current_user.role in [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN]:
+            company = db.query(Company).first()
+
+    # Auto-create a default company if none exists in the database
     if not company:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Company not found. Please create one.",
+        print("DEBUG COMPANY: No company found in DB. Auto-creating default company.")
+        company = Company(
+            name="Microtechnique MANUFACTURING",
+            short_name="Microtechnique",
+            is_approved=True,
+            subscription_plan="Enterprise Plan",
+            tenant_status="active"
         )
+        db.add(company)
+        db.commit()
+        db.refresh(company)
+        
+        # Update user's company_id
+        current_user.company_id = company.id
+        db.commit()
+
     return company
 
 
