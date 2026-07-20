@@ -300,7 +300,7 @@ export default function LotsPage() {
       header: 'Barcode',
       cell: ({ row }) => {
         const lot = row.original;
-        const scanValue = lot.lot_number || lot.barcode || '';
+        const scanValue = lot.barcode || lot.lot_number || '';
         return (
           <div
             className="flex flex-col items-center gap-1 cursor-pointer group"
@@ -310,10 +310,10 @@ export default function LotsPage() {
             <img
               src={`https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(scanValue)}&scale=2&rotate=N&includeText=false&paddingheight=4`}
               alt={scanValue}
-              className="h-9 w-28 object-contain group-hover:opacity-80 transition-opacity"
+              className="h-9 w-40 object-contain group-hover:opacity-80 transition-opacity"
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
-            <span className="font-mono text-[10px] text-muted-foreground">{lot.lot_number}</span>
+            <span className="font-mono text-[9px] text-muted-foreground max-w-[150px] truncate">{scanValue}</span>
           </div>
         );
       },
@@ -534,7 +534,7 @@ export default function LotsPage() {
                 <div className="text-[9px] text-gray-500 font-semibold">PRODUCTION LOT LABEL</div>
                 <img
                   className="h-16 w-full object-contain my-1"
-                  src={`https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(printLot.lot_number)}&scale=2&rotate=N&includeText=true`}
+                  src={`https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(printLot.barcode || printLot.lot_number)}&scale=2&rotate=N&includeText=true`}
                   alt={printLot.lot_number}
                 />
                 <div className="w-full grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] text-black border-t border-gray-200 pt-2">

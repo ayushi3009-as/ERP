@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Scan, CheckCircle2, XCircle, ArrowRight, User, Package,
-  Hash, Ruler, Layers, UserCheck, UserX, Calendar, Clock
+  Hash, Ruler, Layers, UserCheck, Calendar, Clock, Camera, RefreshCw
 } from 'lucide-react';
+import { Html5QrcodeScanner } from 'html5-qrcode';
 import api from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 
 interface LotScanResult {
   success: boolean;
@@ -47,9 +49,12 @@ export default function ScannerPage() {
   const [barcode, setBarcode] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const [lastScan, setLastScan] = useState<ScanResult | null>(null);
+  const [useCamera, setUseCamera] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Keep focus on the text input so hardware/keyboard inputs work when camera is disabled
   useEffect(() => {
+    if (useCamera) return;
     const focusInput = () => {
       if (inputRef.current && document.activeElement !== inputRef.current) {
         inputRef.current.focus();
@@ -58,14 +63,44 @@ export default function ScannerPage() {
     document.addEventListener('click', focusInput);
     focusInput();
     return () => document.removeEventListener('click', focusInput);
-  }, []);
+  }, [useCamera]);
 
-  const handleScan = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!barcode.trim() || isScanning) return;
+  // Handle camera scanner initialization
+  useEffect(() => {
+    if (!useCamera) return;
+
+    const scanner = new Html5QrcodeScanner(
+      'reader',
+      { 
+        fps: 10, 
+        qrbox: { width: 250, height: 150 },
+        aspectRatio: 1.777778
+      },
+      false
+    );
+
+    const onScanSuccess = async (decodedText: string) => {
+      scanner.clear();
+      setUseCamera(false);
+      await triggerScanRequest(decodedText);
+    };
+
+    const onScanFailure = (error: any) => {
+      // quiet fail, typical for html5-qrcode video streams
+    };
+
+    scanner.render(onScanSuccess, onScanFailure);
+
+    return () => {
+      scanner.clear().catch(err => console.error("Failed to clear scanner", err));
+    };
+  }, [useCamera]);
+
+  const triggerScanRequest = async (scannedBarcode: string) => {
+    if (!scannedBarcode.trim() || isScanning) return;
     try {
       setIsScanning(true);
-      const { data } = await api.post('/v1/production/scan', { barcode: barcode.trim() });
+      const { data } = await api.post('/v1/production/scan', { barcode: scannedBarcode.trim() });
       setLastScan(data);
     } catch (error: any) {
       setLastScan({
@@ -76,8 +111,12 @@ export default function ScannerPage() {
     } finally {
       setIsScanning(false);
       setBarcode('');
-      if (inputRef.current) inputRef.current.focus();
     }
+  };
+
+  const handleManualSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    triggerScanRequest(barcode);
   };
 
   const renderScanResult = () => {
@@ -114,31 +153,39 @@ export default function ScannerPage() {
 
             {/* LOT DETAILS */}
             {lastScan.success && lastScan.scan_type === 'lot' && (
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <div className="col-span-2 flex items-center gap-4 p-4 rounded-lg bg-background/60 border">
-                  <span className="text-muted-foreground text-sm uppercase font-semibold">{(lastScan as LotScanResult).previous_stage || 'Start'}</span>
-                  <ArrowRight className="h-5 w-5 text-purple-500 flex-shrink-0" />
-                  <span className="text-purple-600 font-bold text-sm uppercase">{(lastScan as LotScanResult).new_stage}</span>
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="md:col-span-2 flex items-center justify-between p-4 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Previous Process</span>
+                    <span className="font-semibold text-sm uppercase">{(lastScan as LotScanResult).previous_stage || 'Planning'}</span>
+                  </div>
+                  <ArrowRight className="h-5 w-5 text-purple-500 flex-shrink-0 mx-2" />
+                  <div className="flex flex-col text-right">
+                    <span className="text-[10px] uppercase tracking-wider text-purple-500">New Process</span>
+                    <span className="font-bold text-sm uppercase text-purple-600">{(lastScan as LotScanResult).new_stage}</span>
+                  </div>
                 </div>
-                <InfoCard icon={<Hash className="h-4 w-4" />} label="Lot #" value={(lastScan as LotScanResult).lot_number} />
+                <InfoCard icon={<Hash className="h-4 w-4" />} label="Lot Number" value={(lastScan as LotScanResult).lot_number} />
                 <InfoCard icon={<Ruler className="h-4 w-4" />} label="Size" value={(lastScan as LotScanResult).size} />
-                <InfoCard icon={<Package className="h-4 w-4" />} label="Product" value={(lastScan as LotScanResult).product_name} />
-                <InfoCard icon={<Layers className="h-4 w-4" />} label="Design #" value={(lastScan as LotScanResult).design_number} />
+                <InfoCard icon={<Package className="h-4 w-4" />} label="Product Name" value={(lastScan as LotScanResult).product_name} />
+                <InfoCard icon={<Layers className="h-4 w-4" />} label="Design Number" value={(lastScan as LotScanResult).design_number} />
                 <InfoCard icon={<Package className="h-4 w-4" />} label="Design Name" value={(lastScan as LotScanResult).design_name} />
-                <InfoCard icon={<Hash className="h-4 w-4" />} label="Quantity" value={String((lastScan as LotScanResult).quantity)} />
+                <InfoCard icon={<Hash className="h-4 w-4" />} label="Quantity" value={`${(lastScan as LotScanResult).quantity} PCS`} />
               </div>
             )}
 
             {/* EMPLOYEE ATTENDANCE DETAILS */}
             {lastScan.success && lastScan.scan_type === 'employee' && (
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <InfoCard icon={<User className="h-4 w-4" />} label="Employee" value={(lastScan as EmployeeScanResult).employee_name} />
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                <InfoCard icon={<User className="h-4 w-4" />} label="Employee Name" value={(lastScan as EmployeeScanResult).employee_name} />
                 <InfoCard icon={<Hash className="h-4 w-4" />} label="Employee ID" value={(lastScan as EmployeeScanResult).employee_id} />
                 <InfoCard icon={<Layers className="h-4 w-4" />} label="Role / Dept" value={(lastScan as EmployeeScanResult).department} />
                 <InfoCard icon={<Calendar className="h-4 w-4" />} label="Date" value={(lastScan as EmployeeScanResult).attendance_date} />
-                <div className="col-span-2 flex items-center gap-3 p-3 rounded-lg bg-background/60 border">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">Status:</span>
+                <div className="md:col-span-2 flex items-center justify-between p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-blue-600" />
+                    <span className="text-sm font-semibold">Attendance Logged:</span>
+                  </div>
                   <Badge variant={(lastScan as EmployeeScanResult).attendance_status === 'PRESENT' ? 'default' : 'secondary'}>
                     {(lastScan as EmployeeScanResult).attendance_status}
                   </Badge>
@@ -154,51 +201,79 @@ export default function ScannerPage() {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div className="text-center space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Smart Barcode Scanner</h2>
-        <p className="text-muted-foreground">Scan Lot barcodes (for production) or Employee barcodes (for attendance).</p>
+        <h2 className="text-3xl font-bold tracking-tight text-foreground">Smart Barcode Scanner</h2>
+        <p className="text-muted-foreground">Scan Lot barcodes or Employee barcodes instantly.</p>
       </div>
 
-      <Card className="p-8 border-2 border-dashed border-purple-500/30 bg-purple-500/5 relative overflow-hidden">
-        <div className="absolute top-4 right-4 flex items-center gap-2 text-sm font-medium text-purple-600/80">
-          <Scan className="h-4 w-4 animate-pulse" />
-          Ready to Scan
-        </div>
+      <div className="flex justify-center gap-4">
+        <Button
+          variant={useCamera ? 'outline' : 'purple'}
+          onClick={() => setUseCamera(false)}
+          className="flex items-center gap-2"
+        >
+          <Scan className="h-4 w-4" /> Hardware / Manual Input
+        </Button>
+        <Button
+          variant={useCamera ? 'purple' : 'outline'}
+          onClick={() => setUseCamera(true)}
+          className="flex items-center gap-2"
+        >
+          <Camera className="h-4 w-4" /> Phone Camera Scanner
+        </Button>
+      </div>
 
-        <form onSubmit={handleScan} className="flex flex-col items-center justify-center py-8">
-          <div className="relative mb-6">
-            <div className="absolute -inset-4 rounded-full bg-purple-500/20 blur-xl animate-pulse" />
-            <div className="relative h-20 w-20 rounded-full bg-purple-500/20 flex items-center justify-center border-2 border-purple-500/50">
-              <Scan className="h-9 w-9 text-purple-600" />
+      {useCamera ? (
+        <Card className="p-4 border-2 border-dashed border-purple-500/35 bg-purple-500/5 relative overflow-hidden">
+          <div className="text-center space-y-2 mb-4">
+            <h3 className="font-semibold text-lg">Align Barcode within Camera View</h3>
+            <p className="text-xs text-muted-foreground">Grant camera access when prompted.</p>
+          </div>
+          <div id="reader" className="w-full max-w-md mx-auto overflow-hidden rounded-lg border bg-black shadow-inner" />
+        </Card>
+      ) : (
+        <Card className="p-8 border-2 border-dashed border-purple-500/30 bg-purple-500/5 relative overflow-hidden">
+          <div className="absolute top-4 right-4 flex items-center gap-2 text-sm font-medium text-purple-600/80">
+            <Scan className="h-4 w-4 animate-pulse" />
+            Ready to Scan
+          </div>
+
+          <form onSubmit={handleManualSubmit} className="flex flex-col items-center justify-center py-6">
+            <div className="relative mb-6">
+              <div className="absolute -inset-4 rounded-full bg-purple-500/20 blur-xl animate-pulse" />
+              <div className="relative h-20 w-20 rounded-full bg-purple-500/20 flex items-center justify-center border-2 border-purple-500/50">
+                <Scan className="h-9 w-9 text-purple-600" />
+              </div>
             </div>
-          </div>
 
-          <h3 className="text-xl font-medium mb-2">Awaiting Scan...</h3>
-          <div className="flex gap-4 mb-6 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1"><Package className="h-3 w-3" /> Lot → Stage Advance</span>
-            <span className="flex items-center gap-1"><User className="h-3 w-3" /> Employee → Attendance</span>
-          </div>
+            <h3 className="text-xl font-medium mb-2">Awaiting Input...</h3>
+            <div className="flex gap-4 mb-6 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1"><Package className="h-3.5 w-3.5" /> Lot Barcode</span>
+              <span className="flex items-center gap-1"><User className="h-3.5 w-3.5" /> Employee Barcode</span>
+            </div>
 
-          <input
-            ref={inputRef}
-            type="text"
-            value={barcode}
-            onChange={(e) => setBarcode(e.target.value)}
-            disabled={isScanning}
-            placeholder="Scan or type barcode here..."
-            className="w-full max-w-md h-12 rounded-lg border-2 border-purple-500/30 bg-background px-4 text-center text-lg shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-4 focus:ring-purple-500/20"
-            autoFocus
-          />
-          {barcode && (
-            <button
-              type="submit"
+            <input
+              ref={inputRef}
+              type="text"
+              value={barcode}
+              onChange={(e) => setBarcode(e.target.value)}
               disabled={isScanning}
-              className="mt-4 px-6 py-2 rounded-lg bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 transition"
-            >
-              {isScanning ? 'Processing...' : 'Submit'}
-            </button>
-          )}
-        </form>
-      </Card>
+              placeholder="Scan or type barcode here..."
+              className="w-full max-w-md h-12 rounded-lg border-2 border-purple-500/30 bg-background px-4 text-center text-lg shadow-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-4 focus:ring-purple-500/20"
+              autoFocus
+            />
+            {barcode && (
+              <Button
+                type="submit"
+                disabled={isScanning}
+                className="mt-4 px-8 py-2.5 bg-purple-600 text-white font-semibold hover:bg-purple-700 transition"
+              >
+                {isScanning ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : null}
+                {isScanning ? 'Processing...' : 'Submit'}
+              </Button>
+            )}
+          </form>
+        </Card>
+      )}
 
       {renderScanResult()}
     </div>
@@ -207,11 +282,11 @@ export default function ScannerPage() {
 
 function InfoCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="flex items-center gap-2 p-3 rounded-lg bg-background/60 border">
-      <span className="text-muted-foreground">{icon}</span>
-      <div>
-        <div className="text-[10px] uppercase text-muted-foreground tracking-wide">{label}</div>
-        <div className="text-sm font-semibold">{value}</div>
+    <div className="flex items-center gap-2.5 p-3 rounded-lg bg-background/60 border shadow-sm">
+      <span className="text-purple-600">{icon}</span>
+      <div className="min-w-0">
+        <div className="text-[10px] uppercase text-muted-foreground tracking-wide font-semibold">{label}</div>
+        <div className="text-sm font-bold truncate">{value}</div>
       </div>
     </div>
   );
