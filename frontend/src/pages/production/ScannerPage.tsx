@@ -253,6 +253,32 @@ export default function ScannerPage() {
             <p className="text-xs text-muted-foreground">Grant camera access when prompted.</p>
           </div>
           <div id="reader" className="w-full max-w-md mx-auto overflow-hidden rounded-lg border bg-black shadow-inner" />
+          
+          <div className="mt-4 flex flex-col items-center gap-2">
+            <span className="text-xs text-muted-foreground">Or upload a photo of the barcode:</span>
+            <input
+              type="file"
+              accept="image/*"
+              className="text-xs text-purple-700 bg-purple-500/10 px-3 py-2 rounded-lg border border-purple-500/30 cursor-pointer"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                try {
+                  const { Html5Qrcode } = await import('html5-qrcode');
+                  const html5QrCode = new Html5Qrcode("reader");
+                  const decodedText = await html5QrCode.scanFile(file, true);
+                  setUseCamera(false);
+                  await triggerScanRequest(decodedText);
+                } catch (err: any) {
+                  setLastScan({
+                    success: false,
+                    scan_type: 'unknown',
+                    message: "Failed to read barcode from photo. Make sure the image is clear and well-lit."
+                  });
+                }
+              }}
+            />
+          </div>
         </Card>
       ) : (
         <Card className="p-8 border-2 border-dashed border-purple-500/30 bg-purple-500/5 relative overflow-hidden">
