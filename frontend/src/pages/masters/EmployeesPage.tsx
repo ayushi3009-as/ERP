@@ -227,7 +227,18 @@ export default function EmployeesPage() {
       header: 'Department',
       cell: ({ row }) => {
         const emp = row.original;
-        const val = String(emp.avatar_url || emp.settings?.department || emp.role || 'Worker').replace("_", " ").toLowerCase();
+        let displayVal = 'Worker';
+        if (emp.avatar_url) {
+          try {
+            const parsed = JSON.parse(emp.avatar_url);
+            displayVal = parsed.department || 'Worker';
+          } catch (e) {
+            displayVal = emp.avatar_url;
+          }
+        } else {
+          displayVal = emp.role || 'Worker';
+        }
+        const val = String(displayVal).replace("_", " ").toLowerCase();
         return (
           <Badge variant="outline" className="capitalize">
             {val}

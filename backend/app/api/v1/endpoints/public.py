@@ -112,9 +112,10 @@ def get_public_attendance_scan(barcode: str, db: Session = Depends(get_db)) -> A
     if employee.avatar_url:
         try:
             parsed = json.loads(employee.avatar_url)
-            dept_str = parsed.get("department", "Worker")
-            pieces_given = parsed.get("pieces_given", 0)
-            pieces_returned = parsed.get("pieces_returned", 0)
+            # Safe case-insensitive lookups
+            dept_str = parsed.get("department") or parsed.get("Department") or "Worker"
+            pieces_given = parsed.get("pieces_given") or parsed.get("Pieces Given") or parsed.get("Pieces_given") or 0
+            pieces_returned = parsed.get("pieces_returned") or parsed.get("Pieces Returned") or parsed.get("Pieces_returned") or 0
         except Exception:
             dept_str = employee.avatar_url
 
