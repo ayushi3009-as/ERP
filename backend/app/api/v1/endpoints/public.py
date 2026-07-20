@@ -104,11 +104,27 @@ def get_public_attendance_scan(barcode: str, db: Session = Depends(get_db)) -> A
     db.add(history)
     db.commit()
 
+    import json
+    dept_str = "Worker"
+    pieces_given = 0
+    pieces_returned = 0
+
+    if employee.avatar_url:
+        try:
+            parsed = json.loads(employee.avatar_url)
+            dept_str = parsed.get("department", "Worker")
+            pieces_given = parsed.get("pieces_given", 0)
+            pieces_returned = parsed.get("pieces_returned", 0)
+        except Exception:
+            dept_str = employee.avatar_url
+
     return {
         "success": True,
         "employee_name": employee.full_name,
         "employee_id": employee.employee_id or "N/A",
-        "department": str(employee.role.value).replace("_", " ").title() if hasattr(employee.role, 'value') else str(employee.role).replace("_", " ").title(),
+        "department": dept_str.replace("_", " ").title(),
+        "pieces_given": pieces_given,
+        "pieces_returned": pieces_returned,
         "status": status_msg,
         "date": today.isoformat(),
         "message": msg

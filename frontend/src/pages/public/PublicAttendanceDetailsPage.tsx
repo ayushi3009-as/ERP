@@ -15,6 +15,8 @@ interface PublicAttendanceDetails {
   employee_name: string;
   employee_id: string;
   department: string;
+  pieces_given?: number;
+  pieces_returned?: number;
   status: string;
   date: string;
   message: string;
@@ -118,6 +120,8 @@ export default function PublicAttendanceDetailsPage() {
               <DetailBox icon={<Layers className="h-4 w-4" />} label="Department / Role" value={log.department} />
               <DetailBox icon={<Calendar className="h-4 w-4" />} label="Date Logged" value={new Date(log.date).toLocaleDateString()} />
               <DetailBox icon={<Clock className="h-4 w-4" />} label="Time Stamp" value={new Date().toLocaleTimeString()} />
+              <DetailBox icon={<Boxes className="h-4 w-4" />} label="Pieces Given" value={String(log.pieces_given ?? 0)} />
+              <DetailBox icon={<Boxes className="h-4 w-4" />} label="Pieces Returned" value={String(log.pieces_returned ?? 0)} />
             </div>
 
             {/* Calendar Note */}

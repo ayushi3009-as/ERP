@@ -35,6 +35,8 @@ const employeeSchema = z.object({
   joined_date: z.string().optional(),
   barcode: z.string().optional(),
   department: z.string().min(1, 'Department is required'),
+  pieces_given: z.coerce.number().optional().default(0),
+  pieces_returned: z.coerce.number().optional().default(0),
 });
 
 type EmployeeFormData = z.infer<typeof employeeSchema>;
@@ -117,11 +119,11 @@ export default function EmployeesPage() {
 
   const { register, handleSubmit, reset, formState: { errors }, setValue, watch } = useForm<EmployeeFormData>({
     resolver: zodResolver(employeeSchema),
-    defaultValues: { role: 'WORKER', department: 'STITCHING' },
+    defaultValues: { role: 'WORKER', department: 'STITCHING', pieces_given: 0, pieces_returned: 0 },
   });
 
   function resetForm() {
-    reset({ role: 'WORKER', department: 'STITCHING', full_name: '', email: '', username: '', phone: '', employee_id: '', joined_date: '', barcode: '' });
+    reset({ role: 'WORKER', department: 'STITCHING', pieces_given: 0, pieces_returned: 0, full_name: '', email: '', username: '', phone: '', employee_id: '', joined_date: '', barcode: '' });
     setEditingEmployee(null);
   }
 
@@ -132,6 +134,24 @@ export default function EmployeesPage() {
 
   function openEdit(emp: Employee) {
     setEditingEmployee(emp);
+    
+    // Parse avatar_url JSON containing custom fields
+    let dept = 'STITCHING';
+    let pg = 0;
+    let pr = 0;
+    
+    if (emp.avatar_url) {
+      try {
+        const parsed = JSON.parse(emp.avatar_url);
+        dept = parsed.department || 'STITCHING';
+        pg = parsed.pieces_given || 0;
+        pr = parsed.pieces_returned || 0;
+      } catch (e) {
+        // Fallback if avatar_url contains raw department string
+        dept = emp.avatar_url || 'STITCHING';
+      }
+    }
+
     reset({
       full_name: emp.full_name || '',
       email: emp.email || '',
@@ -141,7 +161,9 @@ export default function EmployeesPage() {
       employee_id: emp.employee_id || '',
       joined_date: emp.joined_date || '',
       barcode: emp.barcode || '',
-      department: emp.avatar_url || emp.settings?.department || 'STITCHING',
+      department: dept,
+      pieces_given: pg,
+      pieces_returned: pr,
     });
     setDialogOpen(true);
   }
@@ -153,15 +175,24 @@ export default function EmployeesPage() {
   }
 
   function onSubmit(values: EmployeeFormData) {
+    // Stringify fields to save inside backend's avatar_url field via settings.department mapping
+    const serializedDept = JSON.stringify({
+      department: values.department,
+      pieces_given: Number(values.pieces_given || 0),
+      pieces_returned: Number(values.pieces_returned || 0)
+    });
+
     const payload = { 
       ...values,
       settings: {
-        department: values.department
+        department: serializedDept
       }
     } as any;
     
-    // Delete local form-only field
+    // Delete local form-only fields
     delete payload.department;
+    delete payload.pieces_given;
+    delete payload.pieces_returned;
     
     if (!payload.joined_date) payload.joined_date = null;
     if (!payload.employee_id) payload.employee_id = null;
@@ -322,6 +353,20 @@ export default function EmployeesPage() {
                 </select>
                 {errors.department && <p className="text-xs text-red-500">{errors.department.message}</p>}
               </div>
+              <Input 
+                label="Pieces Given" 
+                type="number" 
+                placeholder="0" 
+                {...register('pieces_given')} 
+                error={errors.pieces_given?.message}
+              />
+              <Input 
+                label="Pieces Returned" 
+                type="number" 
+                placeholder="0" 
+                {...register('pieces_returned')} 
+                error={errors.pieces_returned?.message}
+              />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
