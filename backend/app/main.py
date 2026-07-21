@@ -264,6 +264,15 @@ async def lifespan(app: FastAPI):
 
     _create_tables()  # no-op unless ENVIRONMENT=test
     _seed_admin()
+    
+    # Auto-migrate missing columns for smooth updates
+    try:
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            conn.execute(text("ALTER TABLE lots ADD COLUMN IF NOT EXISTS color VARCHAR(100);"))
+            conn.commit()
+    except Exception as exc:
+        logger.warning(f"Schema auto-update warning: {exc}")
 
     import asyncio
     from app.services import connection_manager
