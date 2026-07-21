@@ -5,11 +5,66 @@ import uuid
 from datetime import datetime
 
 from app.core.database import get_db
-from app.models.models import Lot, ProductionStage, Design, BarcodeScanHistory
+from app.models.models import Lot, ProductionStage, Design, Product, BarcodeScanHistory
 from app.schemas.schemas import LotCreate, LotResponse, PaginatedResponse, PaginationParams
 from app.api.deps import get_current_active_user
 
 router = APIRouter()
+
+def _resolve_design(db: Session, design_number_str: str, company_id: int):
+    if not design_number_str:
+        return None
+    d_num = design_number_str.strip()
+    
+    # 1. Exact or case-insensitive match on design_number or name
+    design = db.query(Design).filter(
+        (Design.design_number.ilike(d_num)) |
+        (Design.name.ilike(d_num)) |
+        (Design.design_number.ilike(f"%{d_num}%")),
+        (Design.company_id == company_id) | (Design.company_id == None)
+    ).first()
+    
+    # 2. Fallback to any design matching design_number globally regardless of company_id
+    if not design:
+        design = db.query(Design).filter(
+            (Design.design_number.ilike(d_num)) | (Design.name.ilike(d_num))
+        ).first()
+
+    # 3. Numeric ID fallback (e.g. user typed "3" or "D-3")
+    if not design and d_num.replace("D-", "").replace("d-", "").isdigit():
+        try:
+            parsed_id = int(d_num.replace("D-", "").replace("d-", ""))
+            design = db.query(Design).filter(Design.id == parsed_id).first()
+        except ValueError:
+            pass
+
+    # 4. Auto-create Design on-the-fly if still not found
+    if not design:
+        target_company_id = company_id or 1
+        prod = db.query(Product).filter(
+            (Product.company_id == target_company_id) | (Product.company_id == None)
+        ).first()
+        if not prod:
+            prod = Product(
+                code=f"PRD-{uuid.uuid4().hex[:6].upper()}",
+                name="Standard Garment",
+                company_id=target_company_id
+            )
+            db.add(prod)
+            db.commit()
+            db.refresh(prod)
+            
+        design = Design(
+            design_number=d_num,
+            name=f"Design {d_num}",
+            product_id=prod.id,
+            company_id=target_company_id
+        )
+        db.add(design)
+        db.commit()
+        db.refresh(design)
+
+    return design
 
 @router.get("", response_model=PaginatedResponse[LotResponse])
 def get_lots(
@@ -61,14 +116,12 @@ def create_lot(
     
     design_id = lot_in.design_id
     product_id = lot_in.product_id
-    if lot_in.design_number:
-        design = db.query(Design).filter(Design.design_number.ilike(lot_in.design_number), Design.company_id == current_user.company_id).first()
-        if not design:
-            raise HTTPException(status_code=400, detail=f"Design '{lot_in.design_number}' not found. Please create the design first.")
+    
+    if lot_in.design_number or not (design_id and product_id):
+        lookup_str = lot_in.design_number or (f"D-{design_id}" if design_id else "D-001")
+        design = _resolve_design(db, lookup_str, current_user.company_id)
         design_id = design.id
         product_id = design.product_id
-    elif not design_id or not product_id:
-        raise HTTPException(status_code=400, detail="design_number or design_id and product_id must be provided")
 
     lot = Lot(
         design_id=design_id,
@@ -105,10 +158,9 @@ def update_lot(
         
     design_id = lot_in.design_id
     product_id = lot_in.product_id
-    if lot_in.design_number:
-        design = db.query(Design).filter(Design.design_number.ilike(lot_in.design_number), Design.company_id == current_user.company_id).first()
-        if not design:
-            raise HTTPException(status_code=400, detail=f"Design '{lot_in.design_number}' not found.")
+    if lot_in.design_number or not (design_id and product_id):
+        lookup_str = lot_in.design_number or (f"D-{design_id}" if design_id else "D-001")
+        design = _resolve_design(db, lookup_str, current_user.company_id)
         design_id = design.id
         product_id = design.product_id
 
