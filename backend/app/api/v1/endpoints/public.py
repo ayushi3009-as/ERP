@@ -105,27 +105,36 @@ def get_public_attendance_scan(barcode: str, db: Session = Depends(get_db)) -> A
     db.commit()
 
     import json
-    dept_str = "Worker"
-    pieces_given = 0
-    pieces_returned = 0
+    op_str = "Overlock"
+    rate_val = 0
+    total_pieces = 0
+    completed_pieces = 0
+    pending_pieces = 0
+    damaged_pieces = 0
 
     if employee.avatar_url:
         try:
             parsed = json.loads(employee.avatar_url)
-            # Safe case-insensitive lookups
-            dept_str = parsed.get("department") or parsed.get("Department") or "Worker"
-            pieces_given = parsed.get("pieces_given") or parsed.get("Pieces Given") or parsed.get("Pieces_given") or 0
-            pieces_returned = parsed.get("pieces_returned") or parsed.get("Pieces Returned") or parsed.get("Pieces_returned") or 0
+            op_str = parsed.get("operation") or parsed.get("department") or "Overlock"
+            rate_val = parsed.get("rate") or 0
+            total_pieces = parsed.get("total_pieces") or parsed.get("pieces_given") or 0
+            completed_pieces = parsed.get("completed_pieces") or parsed.get("pieces_returned") or 0
+            pending_pieces = parsed.get("pending_pieces") or max(0, total_pieces - completed_pieces)
+            damaged_pieces = parsed.get("damaged_pieces") or 0
         except Exception:
-            dept_str = employee.avatar_url
+            op_str = employee.avatar_url
 
     return {
         "success": True,
         "employee_name": employee.full_name,
         "employee_id": employee.employee_id or "N/A",
-        "department": dept_str.replace("_", " ").title(),
-        "pieces_given": pieces_given,
-        "pieces_returned": pieces_returned,
+        "operation": op_str.replace("_", " ").title(),
+        "rate": rate_val,
+        "total_pieces": total_pieces,
+        "completed_pieces": completed_pieces,
+        "pending_pieces": pending_pieces,
+        "damaged_pieces": damaged_pieces,
+        "working_status": "Active in Production",
         "status": status_msg,
         "date": today.isoformat(),
         "message": msg

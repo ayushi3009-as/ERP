@@ -258,6 +258,25 @@ export default function EmployeesPage() {
       },
     },
     {
+      accessorKey: 'barcode',
+      header: 'Tracking Barcode',
+      cell: ({ row }) => {
+        const emp = row.original;
+        const code = emp.barcode || `EMP-${emp.id}`;
+        return (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="h-8 text-xs flex items-center gap-1.5 text-purple-600 hover:text-purple-700 border-purple-200 bg-purple-50/50 hover:bg-purple-100/50"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); showBarcode(emp); }}
+          >
+            <ScanBarcode className="w-3.5 h-3.5" />
+            <span className="font-mono">{code}</span>
+          </Button>
+        );
+      },
+    },
+    {
       accessorKey: 'status',
       header: 'Employee Status',
       cell: ({ row }) => {
@@ -307,6 +326,40 @@ export default function EmployeesPage() {
       ),
     }
   ], []);
+
+  const [selectedEmpTrack, setSelectedEmpTrack] = useState<any>(null);
+
+  function showBarcode(emp: Employee) {
+    let op = 'Overlock';
+    let rt = 0;
+    let tot = 0;
+    let comp = 0;
+    let pend = 0;
+    if (emp.avatar_url) {
+      try {
+        const parsed = JSON.parse(emp.avatar_url);
+        op = parsed.operation || parsed.department || 'Overlock';
+        rt = parsed.rate || 0;
+        tot = parsed.total_pieces || parsed.pieces_given || 0;
+        comp = parsed.completed_pieces || parsed.pieces_returned || 0;
+        pend = parsed.pending_pieces || Math.max(0, tot - comp);
+      } catch (e) {}
+    }
+    const code = emp.barcode || `EMP-${emp.id}`;
+    setSelectedBarcode({ name: emp.full_name, code });
+    setSelectedEmpTrack({
+      name: emp.full_name,
+      code,
+      operation: op,
+      rate: rt,
+      total_pieces: tot,
+      completed_pieces: comp,
+      pending_pieces: pend,
+      damaged_pieces: 0,
+      employee_id: emp.employee_id || `EMP-${emp.id}`,
+    });
+    setBarcodeDialogOpen(true);
+  }
 
   return (
     <div className="space-y-6">
@@ -416,23 +469,56 @@ export default function EmployeesPage() {
       </Dialog>
 
       <Dialog open={barcodeDialogOpen} onOpenChange={setBarcodeDialogOpen}>
-        <DialogContent className="sm:max-w-xs text-center flex flex-col items-center">
-          <DialogHeader>
-            <DialogTitle className="text-center w-full">{selectedBarcode?.name}</DialogTitle>
+        <DialogContent className="sm:max-w-md text-center flex flex-col items-center">
+          <DialogHeader className="w-full">
+            <DialogTitle className="text-center w-full text-xl font-bold">{selectedEmpTrack?.name}</DialogTitle>
           </DialogHeader>
-          <div className="py-6 flex flex-col items-center">
-            {selectedBarcode?.code ? (
-              <img
-                src={`https://bwipjs-api.metafloor.com/?bcid=qrcode&text=${encodeURIComponent('https://erp.microtechnique.in/public/attendance/' + selectedBarcode.code)}&scale=3`}
-                alt={selectedBarcode.name}
-                className="w-32 h-32 object-contain mb-4"
-              />
+          <div className="py-4 flex flex-col items-center w-full space-y-4">
+            {selectedEmpTrack?.code ? (
+              <div className="p-3 bg-white border rounded-xl shadow-sm">
+                <img
+                  src={`https://bwipjs-api.metafloor.com/?bcid=qrcode&text=${encodeURIComponent('https://erp.microtechnique.in/public/attendance/' + selectedEmpTrack.code)}&scale=3`}
+                  alt={selectedEmpTrack.name}
+                  className="w-36 h-36 object-contain"
+                />
+              </div>
             ) : null}
-            <p className="font-mono text-sm font-bold tracking-widest">{selectedBarcode?.code || 'NO BARCODE'}</p>
-            <p className="text-xs text-muted-foreground mt-2">Scan this ID card with a phone to log attendance instantly.</p>
+            <p className="font-mono text-xs font-bold tracking-widest text-muted-foreground bg-muted px-3 py-1 rounded">
+              {selectedEmpTrack?.code || 'NO BARCODE'}
+            </p>
+
+            {/* Live Tracking Dashboard Card */}
+            <div className="w-full border rounded-xl p-3 bg-slate-50 dark:bg-slate-900 text-left space-y-2 text-xs">
+              <div className="flex items-center justify-between border-b pb-1.5">
+                <span className="font-semibold text-slate-500 uppercase tracking-wider text-[10px]">Assigned Operation</span>
+                <Badge variant="purple">{selectedEmpTrack?.operation || 'Overlock'}</Badge>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 pt-1">
+                <div className="p-2 bg-white dark:bg-slate-800 rounded border text-center">
+                  <p className="text-[9px] font-bold text-slate-400 uppercase">Total</p>
+                  <p className="text-base font-bold text-slate-800 dark:text-white">{selectedEmpTrack?.total_pieces || 0}</p>
+                </div>
+                <div className="p-2 bg-emerald-50 dark:bg-emerald-950/40 rounded border border-emerald-200 text-center">
+                  <p className="text-[9px] font-bold text-emerald-600 uppercase">Completed</p>
+                  <p className="text-base font-bold text-emerald-700 dark:text-emerald-300">{selectedEmpTrack?.completed_pieces || 0}</p>
+                </div>
+                <div className="p-2 bg-amber-50 dark:bg-amber-950/40 rounded border border-amber-200 text-center">
+                  <p className="text-[9px] font-bold text-amber-600 uppercase">Pending</p>
+                  <p className="text-base font-bold text-amber-700 dark:text-amber-300">{selectedEmpTrack?.pending_pieces || 0}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t">
+                <span>Rate: <strong>₹{selectedEmpTrack?.rate || 0}/pc</strong></span>
+                <span>Status: <strong className="text-purple-600">Active</strong></span>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-muted-foreground">Scan with phone camera or QR scanner to view complete live tracking dashboard.</p>
           </div>
           <DialogFooter className="w-full sm:justify-center">
-            <Button variant="outline" onClick={() => window.print()}>Print ID Card</Button>
+            <Button variant="outline" onClick={() => window.print()}>Print Tracking ID Card</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
