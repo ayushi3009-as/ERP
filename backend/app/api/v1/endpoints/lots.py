@@ -5,11 +5,34 @@ import uuid
 from datetime import datetime
 
 from app.core.database import get_db
-from app.models.models import Lot, ProductionStage, Design, Product, BarcodeScanHistory
+from app.models.models import Lot, ProductionStage, Design, Product, BarcodeScanHistory, Company, Factory
 from app.schemas.schemas import LotCreate, LotResponse, PaginatedResponse, PaginationParams
 from app.api.deps import get_current_active_user
 
 router = APIRouter()
+
+def _get_valid_company_and_factory(db: Session, current_user: Any):
+    company_id = current_user.company_id
+    if not company_id:
+        c = db.query(Company).first()
+        if not c:
+            c = Company(name="Microtechnique MANUFACTURING", is_approved=True, subscription_plan="Enterprise Plan", tenant_status="active")
+            db.add(c)
+            db.commit()
+            db.refresh(c)
+        company_id = c.id
+
+    factory_id = current_user.factory_id
+    if not factory_id:
+        f = db.query(Factory).filter(Factory.company_id == company_id).first()
+        if not f:
+            f = Factory(name="Main Production Unit", company_id=company_id, is_default=True)
+            db.add(f)
+            db.commit()
+            db.refresh(f)
+        factory_id = f.id
+
+    return company_id, factory_id
 
 def _resolve_design(db: Session, design_number_str: str, company_id: int):
     if not design_number_str:
@@ -76,8 +99,9 @@ def get_lots(
     """
     Retrieve lots.
     """
-    total = db.query(Lot).filter(Lot.is_deleted == False, Lot.company_id == current_user.company_id).count()
-    lots = db.query(Lot).filter(Lot.is_deleted == False, Lot.company_id == current_user.company_id).offset(skip).limit(limit).all()
+    company_id, _ = _get_valid_company_and_factory(db, current_user)
+    total = db.query(Lot).filter(Lot.is_deleted == False, (Lot.company_id == company_id) | (Lot.company_id == None)).count()
+    lots = db.query(Lot).filter(Lot.is_deleted == False, (Lot.company_id == company_id) | (Lot.company_id == None)).order_by(Lot.created_at.desc()).offset(skip).limit(limit).all()
     
     return {
         "items": lots,
@@ -97,6 +121,8 @@ def create_lot(
     """
     Create new lot.
     """
+    company_id, factory_id = _get_valid_company_and_factory(db, current_user)
+
     # Auto-generate lot_number and barcode if not provided
     lot_number = lot_in.lot_number
     if not lot_number:
@@ -119,7 +145,7 @@ def create_lot(
     
     if lot_in.design_number or not (design_id and product_id):
         lookup_str = lot_in.design_number or (f"D-{design_id}" if design_id else "D-001")
-        design = _resolve_design(db, lookup_str, current_user.company_id)
+        design = _resolve_design(db, lookup_str, company_id)
         design_id = design.id
         product_id = design.product_id
 
@@ -132,8 +158,8 @@ def create_lot(
         lot_number=lot_number,
         barcode=barcode_string,
         current_process=current_process,
-        factory_id=current_user.factory_id or 1,  # fallback if user has no factory_id
-        company_id=current_user.company_id,
+        factory_id=factory_id,
+        company_id=company_id,
         created_by=current_user.id
     )
     db.add(lot)

@@ -162,9 +162,14 @@ export default function LotsPage() {
       fetchLots();
     } catch (error: any) {
       console.error('Failed to save lot', error);
-      setErrorMsg(
-        error?.response?.data?.detail || 'Failed to save lot. Please check if Design Number exists.'
-      );
+      const detail = error?.response?.data?.detail;
+      let msg = 'Failed to save lot. Please try again.';
+      if (typeof detail === 'string') {
+        msg = detail;
+      } else if (Array.isArray(detail) && detail.length > 0) {
+        msg = detail[0]?.msg || detail[0]?.loc?.join(' ') || msg;
+      }
+      setErrorMsg(msg);
     }
   };
 
