@@ -91,3 +91,18 @@ def delete_service(
     db.delete(service)
     db.commit()
     return {"success": True}
+
+@router.get("/by-name/{name}")
+def get_service_by_name(
+    name: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    service = db.query(Service).filter(
+        Service.name.ilike(f"%{name}%"),
+        Service.company_id == current_user.company_id
+    ).first()
+    
+    if not service:
+        return {"name": name, "rate": 0}
+    return {"name": service.name, "rate": service.rate, "process": service.process}

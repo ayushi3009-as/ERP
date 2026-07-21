@@ -202,6 +202,7 @@ class LotBase(BaseModel):
     design_id: Optional[int] = None
     product_id: Optional[int] = None
     design_number: Optional[str] = None
+    color: Optional[str] = None
     size: str
     quantity: int
     lot_number: Optional[str] = None

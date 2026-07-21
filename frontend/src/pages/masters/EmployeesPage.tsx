@@ -26,17 +26,14 @@ import type { PaginatedResponse } from '@/types';
 
 // The Employee schema as expected by backend EmployeeCreate
 const employeeSchema = z.object({
-  full_name: z.string().min(1, 'Name is required'),
-  email: z.string().email('Invalid email'),
-  username: z.string().min(1, 'Username is required'),
-  phone: z.string().optional(),
-  role: z.string().min(1, 'Role is required'),
+  full_name: z.string().min(1, 'Full Name is required'),
   employee_id: z.string().optional(),
   joined_date: z.string().optional(),
-  barcode: z.string().optional(),
-  department: z.string().min(1, 'Department is required'),
-  pieces_given: z.coerce.number().optional().default(0),
-  pieces_returned: z.coerce.number().optional().default(0),
+  operation: z.string().min(1, 'Operation is required'),
+  rate: z.coerce.number().optional().default(0),
+  total_pieces: z.coerce.number().optional().default(0),
+  completed_pieces: z.coerce.number().optional().default(0),
+  pending_pieces: z.coerce.number().optional().default(0),
 });
 
 type EmployeeFormData = z.infer<typeof employeeSchema>;
@@ -45,17 +42,22 @@ type EmployeeFormData = z.infer<typeof employeeSchema>;
 interface Employee {
   id: number;
   full_name: string;
-  email: string;
-  username: string;
-  phone: string;
-  role: string;
-  barcode: string;
+  email?: string;
+  username?: string;
+  phone?: string;
+  role?: string;
+  barcode?: string;
   joined_date?: string;
   is_active: boolean;
   created_at: string;
   avatar_url?: string;
   settings?: {
     department?: string;
+    operation?: string;
+    rate?: number;
+    total_pieces?: number;
+    completed_pieces?: number;
+    pending_pieces?: number;
   };
 }
 
@@ -119,11 +121,11 @@ export default function EmployeesPage() {
 
   const { register, handleSubmit, reset, formState: { errors }, setValue, watch } = useForm<EmployeeFormData>({
     resolver: zodResolver(employeeSchema),
-    defaultValues: { role: 'WORKER', department: 'STITCHING', pieces_given: 0, pieces_returned: 0 },
+    defaultValues: { operation: 'Overlock', rate: 0, total_pieces: 0, completed_pieces: 0, pending_pieces: 0 },
   });
 
   function resetForm() {
-    reset({ role: 'WORKER', department: 'STITCHING', pieces_given: 0, pieces_returned: 0, full_name: '', email: '', username: '', phone: '', employee_id: '', joined_date: '', barcode: '' });
+    reset({ operation: 'Overlock', rate: 0, total_pieces: 0, completed_pieces: 0, pending_pieces: 0, full_name: '', employee_id: '', joined_date: '' });
     setEditingEmployee(null);
   }
 
@@ -135,35 +137,34 @@ export default function EmployeesPage() {
   function openEdit(emp: Employee) {
     setEditingEmployee(emp);
     
-    // Parse avatar_url JSON containing custom fields
-    let dept = 'STITCHING';
-    let pg = 0;
-    let pr = 0;
+    let op = 'Overlock';
+    let rt = 0;
+    let tot = 0;
+    let comp = 0;
+    let pend = 0;
     
     if (emp.avatar_url) {
       try {
         const parsed = JSON.parse(emp.avatar_url);
-        dept = parsed.department || 'STITCHING';
-        pg = parsed.pieces_given || 0;
-        pr = parsed.pieces_returned || 0;
+        op = parsed.operation || parsed.department || 'Overlock';
+        rt = parsed.rate || 0;
+        tot = parsed.total_pieces || parsed.pieces_given || 0;
+        comp = parsed.completed_pieces || parsed.pieces_returned || 0;
+        pend = parsed.pending_pieces || Math.max(0, tot - comp);
       } catch (e) {
-        // Fallback if avatar_url contains raw department string
-        dept = emp.avatar_url || 'STITCHING';
+        op = emp.avatar_url || 'Overlock';
       }
     }
 
     reset({
       full_name: emp.full_name || '',
-      email: emp.email || '',
-      username: emp.username || '',
-      phone: emp.phone || '',
-      role: emp.role || 'WORKER',
       employee_id: emp.employee_id || '',
       joined_date: emp.joined_date || '',
-      barcode: emp.barcode || '',
-      department: dept,
-      pieces_given: pg,
-      pieces_returned: pr,
+      operation: op,
+      rate: rt,
+      total_pieces: tot,
+      completed_pieces: comp,
+      pending_pieces: pend,
     });
     setDialogOpen(true);
   }
@@ -175,29 +176,27 @@ export default function EmployeesPage() {
   }
 
   function onSubmit(values: EmployeeFormData) {
-    // Stringify fields to save inside backend's avatar_url field via settings.department mapping
+    const fallbackId = Date.now().toString(36);
     const serializedDept = JSON.stringify({
-      department: values.department,
-      pieces_given: Number(values.pieces_given || 0),
-      pieces_returned: Number(values.pieces_returned || 0)
+      operation: values.operation,
+      rate: Number(values.rate || 0),
+      total_pieces: Number(values.total_pieces || 0),
+      completed_pieces: Number(values.completed_pieces || 0),
+      pending_pieces: Number(values.pending_pieces || 0),
+      department: values.operation
     });
 
     const payload = { 
-      ...values,
+      full_name: values.full_name,
+      username: editingEmployee?.username || `emp_${fallbackId}`,
+      email: editingEmployee?.email || `emp_${fallbackId}@microtechnique.in`,
+      role: 'OPERATOR',
+      employee_id: values.employee_id || null,
+      joined_date: values.joined_date || null,
       settings: {
         department: serializedDept
       }
     } as any;
-    
-    // Delete local form-only fields
-    delete payload.department;
-    delete payload.pieces_given;
-    delete payload.pieces_returned;
-    
-    if (!payload.joined_date) payload.joined_date = null;
-    if (!payload.employee_id) payload.employee_id = null;
-    if (!payload.barcode) payload.barcode = null;
-    if (!payload.phone) payload.phone = null;
 
     if (editingEmployee) {
       updateMutation.mutate({ id: editingEmployee.id, values: payload });
@@ -207,7 +206,7 @@ export default function EmployeesPage() {
   }
 
   function showBarcode(emp: Employee) {
-    setSelectedBarcode({ name: emp.full_name, code: emp.barcode });
+    setSelectedBarcode({ name: emp.full_name, code: emp.barcode || '' });
     setBarcodeDialogOpen(true);
   }
 
@@ -220,61 +219,79 @@ export default function EmployeesPage() {
     {
       accessorKey: 'full_name',
       header: 'Name',
-      cell: ({ row }) => <span className="font-medium">{row.getValue('full_name')}</span>,
+      cell: ({ row }) => <span className="font-semibold text-foreground">{row.getValue('full_name')}</span>,
     },
     {
-      accessorKey: 'role',
-      header: 'Department',
+      accessorKey: 'operation',
+      header: 'Assigned Operation',
       cell: ({ row }) => {
         const emp = row.original;
-        let displayVal = 'Worker';
+        let opName = 'Overlock';
         if (emp.avatar_url) {
           try {
             const parsed = JSON.parse(emp.avatar_url);
-            displayVal = parsed.department || 'Worker';
+            opName = parsed.operation || parsed.department || 'Overlock';
           } catch (e) {
-            displayVal = emp.avatar_url;
+            opName = emp.avatar_url;
           }
-        } else {
-          displayVal = emp.role || 'Worker';
         }
-        const val = String(displayVal).replace("_", " ").toLowerCase();
         return (
-          <Badge variant="outline" className="capitalize">
-            {val}
+          <Badge variant="secondary" className="font-medium bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border-purple-200">
+            {opName}
           </Badge>
         );
       },
     },
     {
-      accessorKey: 'email',
-      header: 'Email / Username',
-      cell: ({ row }) => (
-        <div className="flex flex-col">
-          <span className="text-xs font-medium">{row.getValue('email')}</span>
-          <span className="text-[10px] text-muted-foreground">{row.original.username}</span>
-        </div>
-      ),
+      accessorKey: 'rate',
+      header: 'Rate (₹/pc)',
+      cell: ({ row }) => {
+        const emp = row.original;
+        let rt = 0;
+        if (emp.avatar_url) {
+          try {
+            const parsed = JSON.parse(emp.avatar_url);
+            rt = parsed.rate || 0;
+          } catch (e) {}
+        }
+        return <span className="font-bold text-slate-700 dark:text-slate-200">₹{rt}</span>;
+      },
     },
     {
-      accessorKey: 'barcode',
-      header: 'Barcode',
-      cell: ({ row }) => (
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="h-7 text-xs flex items-center text-purple-600 hover:text-purple-700 hover:bg-purple-50"
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); showBarcode(row.original); }}
-        >
-          <ScanBarcode className="w-3 h-3 mr-1" />
-          {row.getValue('barcode')}
-        </Button>
-      ),
+      accessorKey: 'status',
+      header: 'Employee Status',
+      cell: ({ row }) => {
+        const emp = row.original;
+        let tot = 0;
+        let comp = 0;
+        let pend = 0;
+        if (emp.avatar_url) {
+          try {
+            const parsed = JSON.parse(emp.avatar_url);
+            tot = parsed.total_pieces || parsed.pieces_given || 0;
+            comp = parsed.completed_pieces || parsed.pieces_returned || 0;
+            pend = parsed.pending_pieces || Math.max(0, tot - comp);
+          } catch (e) {}
+        }
+        return (
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+              Total: <strong>{tot}</strong>
+            </span>
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/50">
+              Done: <strong>{comp}</strong>
+            </span>
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/50">
+              Pending: <strong>{pend}</strong>
+            </span>
+          </div>
+        );
+      },
     },
     {
       accessorKey: 'created_at',
       header: 'Joined',
-      cell: ({ row }) => <span>{row.original.joined_date ? row.original.joined_date : formatDate(row.getValue('created_at'))}</span>,
+      cell: ({ row }) => <span className="text-xs text-muted-foreground">{row.original.joined_date ? row.original.joined_date : formatDate(row.getValue('created_at'))}</span>,
     },
     {
       id: 'actions',
@@ -295,8 +312,8 @@ export default function EmployeesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Employees</h2>
-          <p className="text-sm text-muted-foreground">Manage factory workers and operators</p>
+          <h2 className="text-2xl font-bold text-foreground">Employee Master</h2>
+          <p className="text-sm text-muted-foreground">Manage operations, piece-rates, and status tracking</p>
         </div>
         <Button onClick={openCreate}>
           <Plus className="mr-2 h-4 w-4" /> Add Employee
@@ -340,43 +357,52 @@ export default function EmployeesPage() {
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 pt-2">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="Full Name *" placeholder="e.g. Rahul Kumar" {...register('full_name')} error={errors.full_name?.message} />
               <Input label="Employee ID (Optional)" placeholder="EMP-001" {...register('employee_id')} />
               <Input label="Joined Date (Optional)" type="date" {...register('joined_date')} />
-              <Input label="Full Name" placeholder="e.g. John Doe" {...register('full_name')} error={errors.full_name?.message} />
-              <Input label="Username" placeholder="johndoe" {...register('username')} error={errors.username?.message} />
-              <Input label="Email" type="email" placeholder="john@example.com" {...register('email')} error={errors.email?.message} />
-              <Input label="Phone (Optional)" placeholder="+1234567890" {...register('phone')} />
-              <Input label="Barcode (Optional)" placeholder="Leave empty for auto-generate" {...register('barcode')} />
+              
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Department / Role</label>
+                <label className="text-sm font-medium">Assigned Operation *</label>
                 <select 
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  {...register('department')}
+                  {...register('operation')}
                 >
-                  <option value="STITCHING">Stitching Department</option>
-                  <option value="CUTTING">Cutting Department</option>
-                  <option value="CHECKING">Checking Department</option>
-                  <option value="FINISHING">Finishing Department</option>
-                  <option value="PACKING">Packing Department</option>
-                  <option value="IRONING">Ironing Department</option>
-                  <option value="SUPERVISOR">Supervisor / Manager</option>
-                  <option value="ADMIN">HR / Payroll Admin</option>
+                  <option value="Overlock">Overlock</option>
+                  <option value="Catalog">Catalog</option>
+                  <option value="Single">Single</option>
+                  <option value="Press Duty">Press Duty</option>
+                  <option value="Thread Cutting">Thread Cutting</option>
                 </select>
-                {errors.department && <p className="text-xs text-red-500">{errors.department.message}</p>}
+                {errors.operation && <p className="text-xs text-red-500">{errors.operation.message}</p>}
               </div>
+
               <Input 
-                label="Pieces Given" 
+                label="Operation Rate (₹ / Piece)" 
                 type="number" 
                 placeholder="0" 
-                {...register('pieces_given')} 
-                error={errors.pieces_given?.message}
+                {...register('rate')} 
+                error={errors.rate?.message}
               />
               <Input 
-                label="Pieces Returned" 
+                label="Total Pieces Assigned" 
                 type="number" 
                 placeholder="0" 
-                {...register('pieces_returned')} 
-                error={errors.pieces_returned?.message}
+                {...register('total_pieces')} 
+                error={errors.total_pieces?.message}
+              />
+              <Input 
+                label="Completed Pieces" 
+                type="number" 
+                placeholder="0" 
+                {...register('completed_pieces')} 
+                error={errors.completed_pieces?.message}
+              />
+              <Input 
+                label="Pending Pieces" 
+                type="number" 
+                placeholder="0" 
+                {...register('pending_pieces')} 
+                error={errors.pending_pieces?.message}
               />
             </div>
             <DialogFooter>

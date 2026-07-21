@@ -47,13 +47,17 @@ def create_employee(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    if db.query(User).filter(User.email == employee_in.email).first():
-        raise HTTPException(status_code=400, detail="Email already registered")
-    if db.query(User).filter(User.username == employee_in.username).first():
-        raise HTTPException(status_code=400, detail="Username already taken")
+    fallback_id = uuid.uuid4().hex[:8]
+    email = employee_in.email if employee_in.email else f"emp_{fallback_id}@microtechnique.in"
+    username = employee_in.username if employee_in.username else f"emp_{fallback_id}"
+
+    if db.query(User).filter(User.email == email).first():
+        email = f"emp_{uuid.uuid4().hex[:8]}@microtechnique.in"
+    if db.query(User).filter(User.username == username).first():
+        username = f"emp_{uuid.uuid4().hex[:8]}"
 
     role_enum = UserRole.WORKER
-    if employee_in.role.lower() == "operator":
+    if employee_in.role and employee_in.role.lower() == "operator":
         role_enum = UserRole.OPERATOR
 
     barcode = employee_in.barcode if employee_in.barcode else f"EMP-{uuid.uuid4().hex[:6].upper()}"
@@ -64,8 +68,8 @@ def create_employee(
         department_str = employee_in.settings["department"]
 
     db_user = User(
-        email=employee_in.email,
-        username=employee_in.username,
+        email=email,
+        username=username,
         full_name=employee_in.full_name,
         phone=employee_in.phone,
         role=role_enum,

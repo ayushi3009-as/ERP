@@ -35,6 +35,7 @@ interface Lot {
   design_number?: string;
   product_id: number;
   product_name?: string;
+  color?: string;
   size: string;
   quantity: number;
   current_process: string;
@@ -53,6 +54,7 @@ interface ActivityLog {
 
 const lotSchema = z.object({
   design_number: z.string().min(1, 'Design Number is required'),
+  color: z.string().optional(),
   size: z.string().min(1, 'Size is required (e.g. S, M, L, XL)'),
   quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
   lot_number: z.string().optional(),
@@ -115,8 +117,11 @@ export default function LotsPage() {
     },
   });
 
+  const [availableDesigns, setAvailableDesigns] = useState<any[]>([]);
+
   useEffect(() => {
     fetchLots();
+    fetchDesigns();
   }, []);
 
   const fetchLots = async () => {
@@ -129,6 +134,13 @@ export default function LotsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchDesigns = async () => {
+    try {
+      const { data } = await api.get('/v1/designs');
+      setAvailableDesigns(data.items || data || []);
+    } catch (e) {}
   };
 
   const onSubmit = async (values: LotFormData) => {
@@ -260,6 +272,7 @@ export default function LotsPage() {
   function resetForm() {
     reset({
       design_number: '',
+      color: '',
       size: '',
       quantity: 1,
       lot_number: '',
@@ -280,6 +293,7 @@ export default function LotsPage() {
     setErrorMsg(null);
     reset({
       design_number: lot.design_number || `D-${lot.design_id}`,
+      color: lot.color || '',
       size: lot.size,
       quantity: lot.quantity,
       lot_number: lot.lot_number,
@@ -297,26 +311,41 @@ export default function LotsPage() {
     },
     {
       accessorKey: 'barcode',
-      header: 'Barcode',
+      header: 'Barcode & Date',
       cell: ({ row }) => {
         const lot = row.original;
         const scanValue = lot.barcode || lot.lot_number || '';
+        const createdDateStr = lot.created_at ? new Date(lot.created_at).toLocaleDateString() : '';
         return (
           <div
-            className="flex flex-col items-center gap-1 cursor-pointer group"
+            className="flex flex-col items-center gap-0.5 cursor-pointer group py-1"
             title={`Lot: ${lot.lot_number} | Size: ${lot.size} | Qty: ${lot.quantity}`}
             onClick={() => { setPrintLot(lot); setPrintDialogOpen(true); }}
           >
             <img
               src={`https://bwipjs-api.metafloor.com/?bcid=qrcode&text=${encodeURIComponent('https://erp.microtechnique.in/public/lot/' + scanValue)}&scale=2`}
               alt={scanValue}
-              className="h-10 w-10 object-contain group-hover:opacity-80 transition-opacity"
+              className="h-9 w-9 object-contain group-hover:opacity-80 transition-opacity"
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
             <span className="font-mono text-[9px] text-muted-foreground max-w-[150px] truncate">{scanValue}</span>
+            {createdDateStr && (
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                {createdDateStr}
+              </span>
+            )}
           </div>
         );
       },
+    },
+    {
+      accessorKey: 'color',
+      header: 'Color',
+      cell: ({ row }) => (
+        <Badge variant="outline" className="capitalize font-medium">
+          {row.original.color || 'Standard'}
+        </Badge>
+      ),
     },
     {
       accessorKey: 'size_qty',
@@ -461,20 +490,45 @@ export default function LotsPage() {
             <DialogTitle>{editingLot ? 'Edit Lot' : 'Create New Lot'}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
+            <div className="space-y-1">
+              <Input
+                label="Design Number *"
+                placeholder="e.g. D-003"
+                {...register('design_number')}
+                error={errors.design_number?.message}
+              />
+              {(() => {
+                const query = watch('design_number')?.trim().toLowerCase();
+                const matched = availableDesigns.find(d => 
+                  d.design_number?.toLowerCase() === query || 
+                  `d-${d.id}`.toLowerCase() === query
+                );
+                if (!matched) return null;
+                return (
+                  <div className="p-2.5 bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 rounded-md text-xs space-y-1 mt-1">
+                    <p className="font-semibold text-purple-900 dark:text-purple-200">✨ Auto-filled Details for #{matched.design_number}:</p>
+                    <p><span className="text-muted-foreground">Product:</span> <strong>{matched.product_name || matched.product?.name || 'Standard Garment'}</strong></p>
+                    <p><span className="text-muted-foreground">Fabric:</span> {matched.fabric_name || matched.fabric?.name || 'Cotton'}</p>
+                  </div>
+                );
+              })()}
+            </div>
+
             <Input
-              label="Design Number"
-              placeholder="e.g. D-003"
-              {...register('design_number')}
-              error={errors.design_number?.message}
+              label="Color (e.g. Navy Blue, Red, White)"
+              placeholder="e.g. Navy Blue"
+              {...register('color')}
+              error={errors.color?.message}
             />
+
             <Input
-              label="Size"
+              label="Size *"
               placeholder="e.g. S, M, L, XL"
               {...register('size')}
               error={errors.size?.message}
             />
             <Input
-              label="Quantity"
+              label="Quantity *"
               type="number"
               placeholder="e.g. 100"
               {...register('quantity')}

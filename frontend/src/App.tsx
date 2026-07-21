@@ -24,6 +24,7 @@ import RolesSettingsPage from '@/pages/settings/RolesSettingsPage';
 import SuperAdminDashboard from '@/pages/admin/SuperAdminDashboard';
 import PublicLotDetailsPage from '@/pages/public/PublicLotDetailsPage';
 import PublicAttendanceDetailsPage from '@/pages/public/PublicAttendanceDetailsPage';
+import RateMasterPage from '@/pages/masters/RateMasterPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -80,11 +81,12 @@ export default function App() {
       
       {/* Masters */}
       <Route path="/masters/employees" element={<ProtectedRoute><AppLayout><EmployeesPage /></AppLayout></ProtectedRoute>} />
+      <Route path="/masters/rates" element={<ProtectedRoute><AppLayout><RateMasterPage /></AppLayout></ProtectedRoute>} />
       <Route path="/masters/products" element={<ProtectedRoute><AppLayout><ProductsPage /></AppLayout></ProtectedRoute>} />
       <Route path="/masters/categories" element={<ProtectedRoute><AppLayout><MastersListPage /></AppLayout></ProtectedRoute>} />
       <Route path="/masters/designs" element={<ProtectedRoute><AppLayout><DesignsPage /></AppLayout></ProtectedRoute>} />
       <Route path="/masters/fabrics" element={<ProtectedRoute><AppLayout><MastersListPage /></AppLayout></ProtectedRoute>} />
-      <Route path="/masters/services" element={<ProtectedRoute><AppLayout><MastersListPage /></AppLayout></ProtectedRoute>} />
+      <Route path="/masters/services" element={<ProtectedRoute><AppLayout><RateMasterPage /></AppLayout></ProtectedRoute>} />
 
       {/* Production */}
       <Route path="/production/lots" element={<ProtectedRoute><AppLayout><LotsPage /></AppLayout></ProtectedRoute>} />
