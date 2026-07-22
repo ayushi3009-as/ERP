@@ -368,6 +368,7 @@ class Lot(FactoryScopedMixin, Base):
     barcode = Column(String(255), unique=True, index=True, nullable=True)
     current_process = Column(String(100), nullable=True)
     color = Column(String(100), nullable=True)
+    item_name = Column(String(255), nullable=True)
 
     design = relationship('Design')
     product = relationship('Product')

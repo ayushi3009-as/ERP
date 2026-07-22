@@ -153,6 +153,7 @@ def create_lot(
         design_id=design_id,
         product_id=product_id,
         color=lot_in.color,
+        item_name=lot_in.item_name,
         size=lot_in.size,
         quantity=lot_in.quantity,
         lot_number=lot_number,
@@ -194,6 +195,8 @@ def update_lot(
     lot.product_id = product_id
     if lot_in.color is not None:
         lot.color = lot_in.color
+    if lot_in.item_name is not None:
+        lot.item_name = lot_in.item_name
     lot.size = lot_in.size
     lot.quantity = lot_in.quantity
     

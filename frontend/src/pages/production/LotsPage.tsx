@@ -36,6 +36,7 @@ interface Lot {
   product_id: number;
   product_name?: string;
   color?: string;
+  item_name?: string;
   size: string;
   quantity: number;
   current_process: string;
@@ -55,6 +56,7 @@ interface ActivityLog {
 const lotSchema = z.object({
   design_number: z.string().min(1, 'Design Number is required'),
   color: z.string().optional(),
+  item_name: z.string().optional(),
   size: z.string().min(1, 'Size is required (e.g. S, M, L, XL)'),
   quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
   lot_number: z.string().optional(),
@@ -278,6 +280,7 @@ export default function LotsPage() {
     reset({
       design_number: '',
       color: '',
+      item_name: '',
       size: '',
       quantity: 1,
       lot_number: '',
@@ -299,6 +302,7 @@ export default function LotsPage() {
     reset({
       design_number: lot.design_number || `D-${lot.design_id}`,
       color: lot.color || '',
+      item_name: lot.item_name || '',
       size: lot.size,
       quantity: lot.quantity,
       lot_number: lot.lot_number,
@@ -342,6 +346,15 @@ export default function LotsPage() {
           </div>
         );
       },
+    },
+    {
+      accessorKey: 'item_name',
+      header: 'Item Name',
+      cell: ({ row }) => (
+        <span className="font-medium">
+          {row.original.item_name || 'N/A'}
+        </span>
+      ),
     },
     {
       accessorKey: 'color',
@@ -524,6 +537,13 @@ export default function LotsPage() {
               placeholder="e.g. Navy Blue"
               {...register('color')}
               error={errors.color?.message}
+            />
+
+            <Input
+              label="Item Name (Optional)"
+              placeholder="e.g. T-Shirt, Jeans"
+              {...register('item_name')}
+              error={errors.item_name?.message}
             />
 
             <Input
