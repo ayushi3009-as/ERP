@@ -72,7 +72,9 @@ export default function RateMasterPage() {
       resetForm();
     },
     onError: (error: any) => {
-      alert(error.response?.data?.detail || "Failed to create operation rate.");
+      let msg = error.response?.data?.detail;
+      if (Array.isArray(msg)) msg = msg.map(m => m.msg).join(', ');
+      alert(msg || "Failed to create operation rate.");
     }
   });
 
@@ -87,7 +89,9 @@ export default function RateMasterPage() {
       resetForm();
     },
     onError: (error: any) => {
-      alert(error.response?.data?.detail || "Failed to update operation rate.");
+      let msg = error.response?.data?.detail;
+      if (Array.isArray(msg)) msg = msg.map(m => m.msg).join(', ');
+      alert(msg || "Failed to update operation rate.");
     }
   });
 
@@ -135,10 +139,15 @@ export default function RateMasterPage() {
   }
 
   function onSubmit(values: RateFormData) {
+    const payload = { ...values };
+    if (!payload.date) {
+      delete payload.date;
+    }
+    
     if (editingRate) {
-      updateMutation.mutate({ id: editingRate.id, values });
+      updateMutation.mutate({ id: editingRate.id, values: payload });
     } else {
-      createMutation.mutate(values);
+      createMutation.mutate(payload);
     }
   }
 
