@@ -257,56 +257,8 @@ export default function EmployeesPage() {
         return <span className="font-bold text-slate-700 dark:text-slate-200">₹{rt}</span>;
       },
     },
-    {
-      accessorKey: 'barcode',
-      header: 'Tracking Barcode',
-      cell: ({ row }) => {
-        const emp = row.original;
-        const code = emp.barcode || `EMP-${emp.id}`;
-        return (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="h-8 text-xs flex items-center gap-1.5 text-purple-600 hover:text-purple-700 border-purple-200 bg-purple-50/50 hover:bg-purple-100/50"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); showBarcode(emp); }}
-          >
-            <ScanBarcode className="w-3.5 h-3.5" />
-            <span className="font-mono">{code}</span>
-          </Button>
-        );
-      },
-    },
-    {
-      accessorKey: 'status',
-      header: 'Employee Status',
-      cell: ({ row }) => {
-        const emp = row.original;
-        let tot = 0;
-        let comp = 0;
-        let pend = 0;
-        if (emp.avatar_url) {
-          try {
-            const parsed = JSON.parse(emp.avatar_url);
-            tot = parsed.total_pieces || parsed.pieces_given || 0;
-            comp = parsed.completed_pieces || parsed.pieces_returned || 0;
-            pend = parsed.pending_pieces || Math.max(0, tot - comp);
-          } catch (e) {}
-        }
-        return (
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-              Total: <strong>{tot}</strong>
-            </span>
-            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/50">
-              Done: <strong>{comp}</strong>
-            </span>
-            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/50">
-              Pending: <strong>{pend}</strong>
-            </span>
-          </div>
-        );
-      },
-    },
+
+
     {
       accessorKey: 'created_at',
       header: 'Joined',
@@ -436,27 +388,7 @@ export default function EmployeesPage() {
                 {...register('rate')} 
                 error={errors.rate?.message}
               />
-              <Input 
-                label="Total Pieces Assigned (Optional)" 
-                type="number" 
-                placeholder="0" 
-                {...register('total_pieces')} 
-                error={errors.total_pieces?.message}
-              />
-              <Input 
-                label="Completed Pieces (Optional)" 
-                type="number" 
-                placeholder="0" 
-                {...register('completed_pieces')} 
-                error={errors.completed_pieces?.message}
-              />
-              <Input 
-                label="Pending Pieces (Optional)" 
-                type="number" 
-                placeholder="0" 
-                {...register('pending_pieces')} 
-                error={errors.pending_pieces?.message}
-              />
+
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
