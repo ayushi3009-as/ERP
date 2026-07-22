@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List, Dict, Any, TypeVar, Generic
-from datetime import datetime, date
+from datetime import datetime, date as dt_date
 
 T = TypeVar("T")
 
@@ -105,7 +105,7 @@ class UserResponse(UserBase, OrmModel):
 class EmployeeCreate(UserBase):
     barcode: Optional[str] = None
     employee_id: Optional[str] = None
-    joined_date: Optional[date] = None
+    joined_date: Optional[dt_date] = None
     settings: Optional[dict] = None
 
 class EmployeeUpdate(BaseModel):
@@ -116,14 +116,14 @@ class EmployeeUpdate(BaseModel):
     role: Optional[str] = None
     barcode: Optional[str] = None
     employee_id: Optional[str] = None
-    joined_date: Optional[date] = None
+    joined_date: Optional[dt_date] = None
     is_active: Optional[bool] = None
     settings: Optional[dict] = None
 
 class EmployeeResponse(UserResponse, OrmModel):
     barcode: Optional[str] = None
     employee_id: Optional[str] = None
-    joined_date: Optional[date] = None
+    joined_date: Optional[dt_date] = None
     avatar_url: Optional[str] = None
     settings: Optional[dict] = None
 
@@ -246,7 +246,7 @@ class BarcodeScanHistoryResponse(OrmModel):
 
 class AttendanceBase(BaseModel):
     employee_id: int
-    date: date
+    date: dt_date
     status: str
     scan_type: Optional[str] = None
     shift: Optional[str] = None
@@ -272,7 +272,7 @@ class ServiceBase(BaseModel):
     process: str
     rate: float = 0.0
     remarks: Optional[str] = None
-    date: Optional[date] = None
+    date: Optional[dt_date] = None
     design_no: Optional[str] = None
     is_active: Optional[bool] = True
 
