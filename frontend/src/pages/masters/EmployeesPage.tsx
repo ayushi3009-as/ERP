@@ -411,7 +411,7 @@ export default function EmployeesPage() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 pt-2">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input label="Full Name *" placeholder="e.g. Rahul Kumar" {...register('full_name')} error={errors.full_name?.message} />
-              <Input label="Employee ID (Optional)" placeholder="EMP-001" {...register('employee_id')} />
+              <Input label="Machine No (Optional)" placeholder="MCH-01" {...register('employee_id')} />
               <Input label="Joined Date (Optional)" type="date" {...register('joined_date')} />
               
               <div className="space-y-1.5">
@@ -430,28 +430,28 @@ export default function EmployeesPage() {
               </div>
 
               <Input 
-                label="Operation Rate (₹ / Piece)" 
+                label="Operation Rate (₹ / Piece) (Optional)" 
                 type="number" 
                 placeholder="0" 
                 {...register('rate')} 
                 error={errors.rate?.message}
               />
               <Input 
-                label="Total Pieces Assigned" 
+                label="Total Pieces Assigned (Optional)" 
                 type="number" 
                 placeholder="0" 
                 {...register('total_pieces')} 
                 error={errors.total_pieces?.message}
               />
               <Input 
-                label="Completed Pieces" 
+                label="Completed Pieces (Optional)" 
                 type="number" 
                 placeholder="0" 
                 {...register('completed_pieces')} 
                 error={errors.completed_pieces?.message}
               />
               <Input 
-                label="Pending Pieces" 
+                label="Pending Pieces (Optional)" 
                 type="number" 
                 placeholder="0" 
                 {...register('pending_pieces')} 

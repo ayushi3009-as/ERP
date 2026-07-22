@@ -67,7 +67,7 @@ const navigation: NavSection[] = [
   {
     title: 'Production',
     items: [
-      { label: 'Lot Management', to: '/production/lots', icon: Factory },
+      { label: 'Lot Master', to: '/production/lots', icon: Factory },
       { label: 'Barcode Scanner', to: '/production/scanner', icon: ScanLine },
       { label: 'Process Tracking', to: '/production/tracking', icon: MonitorPlay },
     ],
