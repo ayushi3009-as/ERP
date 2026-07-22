@@ -79,14 +79,19 @@ def delete_fabric(
     current_user = Depends(get_current_user)
 ):
     from sqlalchemy.exc import IntegrityError
+    from app.models.models import Product, Design
     db_fabric = db.query(Fabric).filter(Fabric.id == fabric_id, Fabric.company_id == current_user.company_id).first()
     if not db_fabric:
         raise HTTPException(status_code=404, detail="Fabric not found")
         
     try:
+        # Detach from products and designs since we don't cascade delete them
+        db.query(Product).filter(Product.fabric_id == fabric_id, Product.company_id == current_user.company_id).update({"fabric_id": None})
+        db.query(Design).filter(Design.fabric_id == fabric_id, Design.company_id == current_user.company_id).update({"fabric_id": None})
+        
         db.delete(db_fabric)
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status_code=400, detail="Cannot delete this fabric because it is in use by one or more products or lots.")
+        raise HTTPException(status_code=400, detail="Cannot delete this fabric because it is in use by one or more active components.")
     return {"message": "Fabric deleted successfully"}
