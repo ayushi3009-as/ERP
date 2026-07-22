@@ -271,6 +271,8 @@ async def lifespan(app: FastAPI):
         with engine.connect() as conn:
             conn.execute(text("ALTER TABLE lots ADD COLUMN IF NOT EXISTS color VARCHAR(100);"))
             conn.execute(text("ALTER TABLE lots ADD COLUMN IF NOT EXISTS item_name VARCHAR(255);"))
+            conn.execute(text("ALTER TABLE services ADD COLUMN IF NOT EXISTS date DATE;"))
+            conn.execute(text("ALTER TABLE services ADD COLUMN IF NOT EXISTS design_no VARCHAR(100);"))
             conn.commit()
     except Exception as exc:
         logger.warning(f"Schema auto-update warning: {exc}")

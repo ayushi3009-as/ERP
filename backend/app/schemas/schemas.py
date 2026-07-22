@@ -272,6 +272,8 @@ class ServiceBase(BaseModel):
     process: str
     rate: float = 0.0
     remarks: Optional[str] = None
+    date: Optional[date] = None
+    design_no: Optional[str] = None
     is_active: Optional[bool] = True
 
 class ServiceCreate(ServiceBase):

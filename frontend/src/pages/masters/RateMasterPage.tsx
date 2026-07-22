@@ -24,9 +24,11 @@ import type { PaginatedResponse } from '@/types';
 
 const rateSchema = z.object({
   name: z.string().min(1, 'Operation name is required'),
-  process: z.string().min(1, 'Process department is required'),
+  process: z.string().min(1, 'Operation (Dept Category) is required'),
   rate: z.coerce.number().min(0, 'Rate must be greater than or equal to 0'),
   remarks: z.string().optional(),
+  date: z.string().optional(),
+  design_no: z.string().optional(),
 });
 
 type RateFormData = z.infer<typeof rateSchema>;
@@ -37,6 +39,8 @@ interface RateItem {
   process: string;
   rate: number;
   remarks?: string;
+  date?: string;
+  design_no?: string;
   created_at?: string;
 }
 
@@ -102,7 +106,7 @@ export default function RateMasterPage() {
   });
 
   function resetForm() {
-    reset({ name: 'Stitching', process: 'Production', rate: 0, remarks: '' });
+    reset({ name: 'Stitching', process: 'Production', rate: 0, remarks: '', date: '', design_no: '' });
     setEditingRate(null);
   }
 
@@ -118,6 +122,8 @@ export default function RateMasterPage() {
       process: item.process,
       rate: item.rate,
       remarks: item.remarks || '',
+      date: item.date || '',
+      design_no: item.design_no || '',
     });
     setDialogOpen(true);
   }
@@ -149,12 +155,22 @@ export default function RateMasterPage() {
     },
     {
       accessorKey: 'process',
-      header: 'Department',
+      header: 'Operation',
       cell: ({ row }) => (
         <Badge variant="outline" className="capitalize">
           {row.getValue('process')}
         </Badge>
       ),
+    },
+    {
+      accessorKey: 'design_no',
+      header: 'Design No',
+      cell: ({ row }) => <span className="text-sm font-medium">{row.original.design_no || '—'}</span>,
+    },
+    {
+      accessorKey: 'date',
+      header: 'Date',
+      cell: ({ row }) => <span className="text-sm">{row.original.date ? new Date(row.original.date).toLocaleDateString() : '—'}</span>,
     },
     {
       accessorKey: 'rate',
@@ -240,10 +256,22 @@ export default function RateMasterPage() {
               error={errors.name?.message} 
             />
             <Input 
-              label="Department / Category *" 
+              label="Operation (Dept Category) *" 
               placeholder="e.g. Production / Cutting / Finishing" 
               {...register('process')} 
               error={errors.process?.message} 
+            />
+            <Input 
+              label="Date (Optional)" 
+              type="date"
+              {...register('date')} 
+              error={errors.date?.message} 
+            />
+            <Input 
+              label="Design No (Optional)" 
+              placeholder="e.g. D-101" 
+              {...register('design_no')} 
+              error={errors.design_no?.message} 
             />
             <Input 
               label="Rate (₹ / Piece) *" 

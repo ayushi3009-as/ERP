@@ -389,6 +389,8 @@ class Service(CompanyScopedMixin, Base):
     process = Column(String(255), nullable=False)
     rate = Column(Numeric(15, 2), default=0)
     remarks = Column(Text, nullable=True)
+    date = Column(Date, nullable=True)
+    design_no = Column(String(100), nullable=True)
 
 class InternalPayment(FactoryScopedMixin, Base):
     __tablename__ = 'internal_payments'
