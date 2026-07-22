@@ -306,7 +306,7 @@ class Fabric(CompanyScopedMixin, Base):
     name = Column(String(255), nullable=False)
     fabric_type = Column(String(100), nullable=True)
     gsm = Column(String(50), nullable=True)
-    composition = Column(String(255), nullable=True)
+    qty_in_kg = Column(Numeric(15, 2), nullable=True, default=0)
     color = Column(String(100), nullable=True)
 
 class Product(CompanyScopedMixin, Base):

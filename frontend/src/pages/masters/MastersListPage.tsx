@@ -72,22 +72,22 @@ const MASTER_CONFIGS: Record<string, MasterConfig> = {
     ],
   },
   fabrics: {
-    title: 'Fabrics',
+    title: 'Fabric Master',
     icon: Package,
     apiPath: '/v1/fabrics',
     columns: [
       { key: 'name', label: 'Name' },
       { key: 'fabric_type', label: 'Fabric Type' },
       { key: 'gsm', label: 'GSM' },
-      { key: 'composition', label: 'Composition' },
       { key: 'color', label: 'Color' },
+      { key: 'qty_in_kg', label: 'QTY in kg' },
     ],
     formFields: [
       { key: 'name', label: 'Name', placeholder: 'Fabric name (e.g., Summer Cotton)', required: true },
       { key: 'fabric_type', label: 'Fabric Type', placeholder: 'e.g., Single Jersey' },
       { key: 'gsm', label: 'GSM', placeholder: 'GSM' },
-      { key: 'composition', label: 'Composition', placeholder: 'e.g., 100% Cotton' },
       { key: 'color', label: 'Color', placeholder: 'e.g., Navy Blue' },
+      { key: 'qty_in_kg', label: 'QTY in kg', placeholder: 'e.g. 50.5', type: 'number' },
     ],
   },
   services: {

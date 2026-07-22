@@ -59,7 +59,7 @@ const navigation: NavSection[] = [
       { label: 'Employees', to: '/masters/employees', icon: UserCheck },
       { label: 'Rate Master', to: '/masters/rates', icon: Banknote },
       { label: 'Designs', to: '/masters/designs', icon: Palette },
-      { label: 'Fabrics', to: '/masters/fabrics', icon: Boxes },
+      { label: 'Fabric Master', to: '/masters/fabrics', icon: Boxes },
     ],
   },
   {

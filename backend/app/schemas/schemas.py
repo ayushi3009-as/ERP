@@ -146,7 +146,7 @@ class FabricBase(BaseModel):
     name: str
     fabric_type: Optional[str] = None
     gsm: Optional[str] = None
-    composition: Optional[str] = None
+    qty_in_kg: Optional[float] = None
     color: Optional[str] = None
     is_active: Optional[bool] = True
 
