@@ -201,6 +201,11 @@ function MasterListContent({ config, type }: { config: MasterConfig; type: strin
       setDeleteDialogOpen(false);
       setDeletingItem(null);
     },
+    onError: (error: any) => {
+      alert(error.response?.data?.detail || `Failed to delete ${config.title.toLowerCase()}.`);
+      setDeleteDialogOpen(false);
+      setDeletingItem(null);
+    }
   });
 
   const defaultValues: Record<string, unknown> = {

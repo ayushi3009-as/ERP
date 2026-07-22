@@ -78,10 +78,15 @@ def delete_fabric(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
+    from sqlalchemy.exc import IntegrityError
     db_fabric = db.query(Fabric).filter(Fabric.id == fabric_id, Fabric.company_id == current_user.company_id).first()
     if not db_fabric:
         raise HTTPException(status_code=404, detail="Fabric not found")
         
-    db.delete(db_fabric)
-    db.commit()
+    try:
+        db.delete(db_fabric)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Cannot delete this fabric because it is in use by one or more products or lots.")
     return {"message": "Fabric deleted successfully"}
