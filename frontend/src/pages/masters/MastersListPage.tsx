@@ -172,6 +172,9 @@ function MasterListContent({ config, type }: { config: MasterConfig; type: strin
       setDialogOpen(false);
       resetForm();
     },
+    onError: (error: any) => {
+      alert(error.response?.data?.detail || `Failed to create ${config.title.toLowerCase()}.`);
+    }
   });
 
   const updateMutation = useMutation({
@@ -184,6 +187,9 @@ function MasterListContent({ config, type }: { config: MasterConfig; type: strin
       setDialogOpen(false);
       resetForm();
     },
+    onError: (error: any) => {
+      alert(error.response?.data?.detail || `Failed to update ${config.title.toLowerCase()}.`);
+    }
   });
 
   const deleteMutation = useMutation({

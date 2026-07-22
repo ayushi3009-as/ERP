@@ -40,7 +40,7 @@ def create_fabric(
         name=fabric_in.name,
         fabric_type=fabric_in.fabric_type,
         gsm=fabric_in.gsm,
-        composition=fabric_in.composition,
+        qty_in_kg=fabric_in.qty_in_kg,
         color=fabric_in.color,
         is_active=fabric_in.is_active,
         company_id=current_user.company_id
@@ -64,7 +64,7 @@ def update_fabric(
     db_fabric.name = fabric_in.name
     db_fabric.fabric_type = fabric_in.fabric_type
     db_fabric.gsm = fabric_in.gsm
-    db_fabric.composition = fabric_in.composition
+    db_fabric.qty_in_kg = fabric_in.qty_in_kg
     db_fabric.color = fabric_in.color
     db_fabric.is_active = fabric_in.is_active
     
