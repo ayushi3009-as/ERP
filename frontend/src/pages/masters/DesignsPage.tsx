@@ -126,6 +126,11 @@ export default function DesignsPage() {
       setDialogOpen(false);
       setDeletingDesign(null);
     },
+    onError: (error: any) => {
+      alert(error.response?.data?.detail || "Failed to delete design.");
+      setDialogOpen(false);
+      setDeletingDesign(null);
+    }
   });
 
   const {

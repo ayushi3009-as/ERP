@@ -156,10 +156,15 @@ def delete_design(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
+    from sqlalchemy.exc import IntegrityError
     db_design = db.query(Design).filter(Design.id == design_id, Design.company_id == current_user.company_id).first()
     if not db_design:
         raise HTTPException(status_code=404, detail="Design not found")
         
-    db.delete(db_design)
-    db.commit()
+    try:
+        db.delete(db_design)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Cannot delete this design because it is in use by one or more lots.")
     return {"message": "Design deleted successfully"}

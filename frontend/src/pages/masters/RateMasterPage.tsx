@@ -139,10 +139,12 @@ export default function RateMasterPage() {
   }
 
   function onSubmit(values: RateFormData) {
-    const payload = { ...values };
-    if (!payload.date) {
-      delete payload.date;
-    }
+    const payload: any = { ...values };
+    
+    // Scrub empty strings to avoid Pydantic "Input should be None" errors
+    if (!payload.date) delete payload.date;
+    if (!payload.remarks) delete payload.remarks;
+    if (!payload.design_no) delete payload.design_no;
     
     if (editingRate) {
       updateMutation.mutate({ id: editingRate.id, values: payload });
