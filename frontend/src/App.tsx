@@ -82,8 +82,6 @@ export default function App() {
       {/* Masters */}
       <Route path="/masters/employees" element={<ProtectedRoute><AppLayout><EmployeesPage /></AppLayout></ProtectedRoute>} />
       <Route path="/masters/rates" element={<ProtectedRoute><AppLayout><RateMasterPage /></AppLayout></ProtectedRoute>} />
-      <Route path="/masters/products" element={<ProtectedRoute><AppLayout><ProductsPage /></AppLayout></ProtectedRoute>} />
-      <Route path="/masters/categories" element={<ProtectedRoute><AppLayout><MastersListPage /></AppLayout></ProtectedRoute>} />
       <Route path="/masters/designs" element={<ProtectedRoute><AppLayout><DesignsPage /></AppLayout></ProtectedRoute>} />
       <Route path="/masters/fabrics" element={<ProtectedRoute><AppLayout><MastersListPage /></AppLayout></ProtectedRoute>} />
       <Route path="/masters/services" element={<ProtectedRoute><AppLayout><RateMasterPage /></AppLayout></ProtectedRoute>} />

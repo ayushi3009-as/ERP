@@ -58,8 +58,6 @@ const navigation: NavSection[] = [
     items: [
       { label: 'Employees', to: '/masters/employees', icon: UserCheck },
       { label: 'Rate Master', to: '/masters/rates', icon: Banknote },
-      { label: 'Products', to: '/masters/products', icon: Package },
-      { label: 'Categories', to: '/masters/categories', icon: Layers },
       { label: 'Designs', to: '/masters/designs', icon: Palette },
       { label: 'Fabrics', to: '/masters/fabrics', icon: Boxes },
     ],
