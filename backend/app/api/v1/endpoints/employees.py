@@ -62,11 +62,6 @@ def create_employee(
 
     barcode = employee_in.barcode if employee_in.barcode else f"EMP-{uuid.uuid4().hex[:6].upper()}"
 
-    # Extract department from settings payload if provided
-    department_str = None
-    if employee_in.settings and "department" in employee_in.settings:
-        department_str = employee_in.settings["department"]
-
     db_user = User(
         email=email,
         username=username,
@@ -78,7 +73,8 @@ def create_employee(
         barcode=barcode,
         employee_id=employee_in.employee_id,
         joined_date=employee_in.joined_date,
-        avatar_url=department_str, # Store department inside avatar_url
+        operation=employee_in.operation,
+        rate=employee_in.rate,
         password_hash="DUMMY_HASH", 
         is_active=True,
     )
@@ -123,9 +119,8 @@ def update_employee(
         db_user.role = UserRole.OPERATOR if update_data["role"].lower() == "operator" else UserRole.WORKER
         del update_data["role"]
 
-    # Extract department from settings payload if provided
-    if "settings" in update_data and update_data["settings"] and "department" in update_data["settings"]:
-        db_user.avatar_url = update_data["settings"]["department"]
+    # Remove old settings hack if present, we no longer use avatar_url for operation
+    if "settings" in update_data:
         del update_data["settings"]
 
     for field, value in update_data.items():

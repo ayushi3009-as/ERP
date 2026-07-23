@@ -274,6 +274,12 @@ async def lifespan(app: FastAPI):
             conn.execute(text("ALTER TABLE services ADD COLUMN IF NOT EXISTS date DATE;"))
             conn.execute(text("ALTER TABLE services ADD COLUMN IF NOT EXISTS design_no VARCHAR(100);"))
             conn.execute(text("ALTER TABLE fabrics ADD COLUMN IF NOT EXISTS qty_in_kg NUMERIC(15, 2) DEFAULT 0;"))
+            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS operation VARCHAR(255);"))
+            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS rate NUMERIC(15, 2) DEFAULT 0;"))
+            conn.execute(text("ALTER TABLE internal_payments ADD COLUMN IF NOT EXISTS employee_id INTEGER REFERENCES users(id);"))
+            conn.execute(text("ALTER TABLE internal_payments ADD COLUMN IF NOT EXISTS machine_no VARCHAR(50);"))
+            conn.execute(text("ALTER TABLE barcode_scan_history ADD COLUMN IF NOT EXISTS short_qty INTEGER DEFAULT 0;"))
+            conn.execute(text("ALTER TABLE barcode_scan_history ADD COLUMN IF NOT EXISTS machine_no VARCHAR(50);"))
             conn.commit()
     except Exception as exc:
         logger.warning(f"Schema auto-update warning: {exc}")

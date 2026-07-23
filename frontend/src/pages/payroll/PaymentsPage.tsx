@@ -32,7 +32,9 @@ import { format } from 'date-fns';
 
 const paymentSchema = z.object({
   payment_id: z.string().min(1, 'Payment ID is required'),
-  employee_name: z.string().min(1, 'Employee name is required'),
+  employee_id: z.coerce.number().optional().nullable(),
+  machine_no: z.string().optional().nullable(),
+  employee_name: z.string().min(1, 'Employee is required'),
   payment_type: z.string().min(1, 'Payment Type is required'),
   amount: z.coerce.number().min(0.01, 'Amount must be greater than 0'),
   remarks: z.string().optional(),
@@ -44,6 +46,8 @@ interface InternalPayment {
   id: number;
   payment_id: string;
   payment_date: string;
+  employee_id: number | null;
+  machine_no: string | null;
   employee_name: string;
   payment_type: string;
   amount: number;
@@ -66,6 +70,14 @@ export default function PaymentsPage() {
         params: { search, page, per_page: 20 },
       });
       return data;
+    },
+  });
+
+  const { data: employees } = useQuery({
+    queryKey: ['employees-for-payments'],
+    queryFn: async () => {
+      const { data } = await api.get('/v1/employees', { params: { limit: 1000 } });
+      return data.items || [];
     },
   });
 
@@ -123,7 +135,7 @@ export default function PaymentsPage() {
   });
 
   function resetForm() {
-    reset({ payment_id: '', employee_name: '', payment_type: 'Piece-rate', amount: 0, remarks: '' });
+    reset({ payment_id: '', employee_id: null, machine_no: '', employee_name: '', payment_type: 'Piece-rate', amount: 0, remarks: '' });
     setEditingPayment(null);
   }
 
@@ -136,6 +148,8 @@ export default function PaymentsPage() {
     setEditingPayment(payment);
     reset({
       payment_id: payment.payment_id,
+      employee_id: payment.employee_id,
+      machine_no: payment.machine_no,
       employee_name: payment.employee_name,
       payment_type: payment.payment_type,
       amount: payment.amount,
@@ -290,12 +304,30 @@ export default function PaymentsPage() {
               {...register('payment_id')}
               error={errors.payment_id?.message}
             />
-            <Input
-              label="Employee Name"
-              placeholder="e.g. Ramesh Kumar"
-              {...register('employee_name')}
-              error={errors.employee_name?.message}
-            />
+            <div>
+              <label className="text-sm font-medium text-foreground">Employee</label>
+              <Select
+                value={watch('employee_id')?.toString() || ''}
+                onValueChange={(v) => {
+                  const emp = employees?.find((e: any) => e.id.toString() === v);
+                  if (emp) {
+                    setValue('employee_id', emp.id);
+                    setValue('employee_name', emp.full_name);
+                    setValue('machine_no', emp.employee_id || '');
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Employee" />
+                </SelectTrigger>
+                <SelectContent>
+                  {employees?.map((emp: any) => (
+                    <SelectItem key={emp.id} value={emp.id.toString()}>{emp.full_name} {emp.employee_id ? `(${emp.employee_id})` : ''}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.employee_name && <p className="text-xs text-red-500 mt-1">{errors.employee_name.message}</p>}
+            </div>
             <div>
               <label className="text-sm font-medium text-foreground">Payment Type</label>
               <Select

@@ -56,32 +56,51 @@ def smart_scan(
         product = db.query(Product).filter(Product.id == lot.product_id).first()
 
         current_stage = lot.current_process
-        try:
-            current_index = STAGE_SEQUENCE.index(current_stage) if current_stage else -1
-            if current_index >= len(STAGE_SEQUENCE) - 1:
-                next_stage = current_stage
-                msg = f"Lot {lot.lot_number} is already fully completed."
-                success = False
-            else:
-                next_stage = STAGE_SEQUENCE[current_index + 1]
+        next_stage = current_stage
+        success = True
+        
+        machine_no = scan_in.machine_no
+        if scan_in.employee_id:
+            emp = db.query(User).filter(User.id == scan_in.employee_id).first()
+            if emp and emp.employee_id:
+                machine_no = emp.employee_id
+
+        if scan_in.action_type == "issue":
+            msg = f"Lot {lot.lot_number} issued to Employee {machine_no or scan_in.employee_id or 'Unknown'}"
+        elif scan_in.action_type == "receive":
+            msg = f"Lot {lot.lot_number} received from Employee {machine_no or scan_in.employee_id or 'Unknown'}"
+            if scan_in.short_qty and scan_in.short_qty > 0:
+                msg += f" (Short Qty: {scan_in.short_qty})"
+                # In a full system, we might adjust lot.quantity here: lot.quantity -= scan_in.short_qty
+        elif scan_in.action_type == "reject":
+            msg = f"Lot {lot.lot_number} rejected. Remarks: {scan_in.remarks}"
+        else:
+            # Standard sequential scan (auto-advance)
+            try:
+                current_index = STAGE_SEQUENCE.index(current_stage) if current_stage else -1
+                if current_index >= len(STAGE_SEQUENCE) - 1:
+                    msg = f"Lot {lot.lot_number} is already fully completed."
+                    success = False
+                else:
+                    next_stage = STAGE_SEQUENCE[current_index + 1]
+                    lot.current_process = next_stage
+                    msg = f"Lot advanced: {current_stage or 'Start'} → {next_stage}"
+            except ValueError:
+                next_stage = ProductionStage.CUTTING.value
                 lot.current_process = next_stage
-                msg = f"Lot advanced: {current_stage or 'Start'} → {next_stage}"
-                success = True
-        except ValueError:
-            next_stage = ProductionStage.CUTTING.value
-            lot.current_process = next_stage
-            msg = f"Lot started at: {next_stage}"
-            success = True
+                msg = f"Lot started at: {next_stage}"
 
         # Record history
         history = BarcodeScanHistory(
             barcode=barcode,
-            scan_type="lot",
+            scan_type=scan_in.action_type if scan_in.action_type in ["issue", "receive", "reject"] else "lot",
             scanned_by=current_user.id,
             process_stage=next_stage,
             factory_id=lot.factory_id,
             company_id=lot.company_id,
-            remarks=msg
+            remarks=msg if not scan_in.remarks else scan_in.remarks,
+            short_qty=scan_in.short_qty or 0,
+            machine_no=machine_no
         )
         db.add(history)
         db.commit()

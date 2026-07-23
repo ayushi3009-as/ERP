@@ -8,6 +8,9 @@ import api from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui';
+import { useQuery } from '@tanstack/react-query';
 
 interface LotScanResult {
   success: boolean;
@@ -50,7 +53,19 @@ export default function ScannerPage() {
   const [isScanning, setIsScanning] = useState(false);
   const [lastScan, setLastScan] = useState<ScanResult | null>(null);
   const [useCamera, setUseCamera] = useState(false);
+  const [actionType, setActionType] = useState('scan');
+  const [employeeId, setEmployeeId] = useState<number | null>(null);
+  const [shortQty, setShortQty] = useState<number>(0);
+  const [remarks, setRemarks] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const { data: employees } = useQuery({
+    queryKey: ['employees-for-scanner'],
+    queryFn: async () => {
+      const { data } = await api.get('/v1/employees', { params: { limit: 1000 } });
+      return data.items || [];
+    },
+  });
 
   // Keep focus on the text input so hardware/keyboard inputs work when camera is disabled
   useEffect(() => {
@@ -124,8 +139,19 @@ export default function ScannerPage() {
     if (!scannedBarcode.trim() || isScanning) return;
     try {
       setIsScanning(true);
-      const { data } = await api.post('/v1/production/scan', { barcode: scannedBarcode.trim() });
+      const { data } = await api.post('/v1/production/scan', { 
+        barcode: scannedBarcode.trim(),
+        action_type: actionType,
+        employee_id: employeeId,
+        short_qty: shortQty,
+        remarks: remarks
+      });
       setLastScan(data);
+      if (data.success) {
+        setRemarks('');
+        setShortQty(0);
+        // keep actionType and employeeId as they might be doing bulk scans
+      }
     } catch (error: any) {
       setLastScan({
         success: false,
@@ -296,9 +322,43 @@ export default function ScannerPage() {
             </div>
 
             <h3 className="text-xl font-medium mb-2">Awaiting Input...</h3>
-            <div className="flex gap-4 mb-6 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1"><Package className="h-3.5 w-3.5" /> Lot Barcode</span>
-              <span className="flex items-center gap-1"><User className="h-3.5 w-3.5" /> Employee Barcode</span>
+            <div className="w-full max-w-md space-y-4 mb-6 text-left">
+              <div className="grid grid-cols-2 gap-2">
+                <Button type="button" variant={actionType === 'scan' ? 'default' : 'outline'} onClick={() => setActionType('scan')}>Standard Scan</Button>
+                <Button type="button" variant={actionType === 'issue' ? 'default' : 'outline'} onClick={() => setActionType('issue')}>Issue</Button>
+                <Button type="button" variant={actionType === 'receive' ? 'default' : 'outline'} onClick={() => setActionType('receive')}>Receive</Button>
+                <Button type="button" variant={actionType === 'reject' ? 'default' : 'outline'} onClick={() => setActionType('reject')}>Reject</Button>
+              </div>
+
+              {(actionType === 'issue' || actionType === 'receive') && (
+                <div>
+                  <label className="text-xs font-semibold">Employee</label>
+                  <Select value={employeeId?.toString() || ''} onValueChange={(v) => setEmployeeId(parseInt(v))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Employee" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {employees?.map((emp: any) => (
+                        <SelectItem key={emp.id} value={emp.id.toString()}>{emp.full_name} {emp.employee_id ? `(${emp.employee_id})` : ''}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {actionType === 'receive' && (
+                <div>
+                  <label className="text-xs font-semibold">Short Quantity</label>
+                  <Input type="number" value={shortQty} onChange={(e) => setShortQty(parseInt(e.target.value) || 0)} min={0} />
+                </div>
+              )}
+
+              {actionType !== 'scan' && (
+                <div>
+                  <label className="text-xs font-semibold">Remarks</label>
+                  <Input value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="Any notes..." />
+                </div>
+              )}
             </div>
 
             <input

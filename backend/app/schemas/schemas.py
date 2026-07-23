@@ -106,6 +106,8 @@ class EmployeeCreate(UserBase):
     barcode: Optional[str] = None
     employee_id: Optional[str] = None
     joined_date: Optional[dt_date] = None
+    operation: Optional[str] = None
+    rate: Optional[float] = None
     settings: Optional[dict] = None
 
 class EmployeeUpdate(BaseModel):
@@ -117,6 +119,8 @@ class EmployeeUpdate(BaseModel):
     barcode: Optional[str] = None
     employee_id: Optional[str] = None
     joined_date: Optional[dt_date] = None
+    operation: Optional[str] = None
+    rate: Optional[float] = None
     is_active: Optional[bool] = None
     settings: Optional[dict] = None
 
@@ -124,6 +128,8 @@ class EmployeeResponse(UserResponse, OrmModel):
     barcode: Optional[str] = None
     employee_id: Optional[str] = None
     joined_date: Optional[dt_date] = None
+    operation: Optional[str] = None
+    rate: Optional[float] = None
     avatar_url: Optional[str] = None
     settings: Optional[dict] = None
 
@@ -224,6 +230,10 @@ class LotResponse(LotBase, OrmModel):
 class ScanRequest(BaseModel):
     barcode: str
     employee_id: Optional[int] = None
+    action_type: Optional[str] = "scan" # "issue", "receive", "reject", "scan"
+    short_qty: Optional[int] = 0
+    remarks: Optional[str] = None
+    machine_no: Optional[str] = None
 
 class ScanResponse(OrmModel):
     success: bool
@@ -285,6 +295,8 @@ class ServiceResponse(ServiceBase, OrmModel):
 
 class InternalPaymentBase(BaseModel):
     payment_id: str
+    employee_id: Optional[int] = None
+    machine_no: Optional[str] = None
     employee_name: str
     payment_type: str
     amount: float = 0.0

@@ -38,7 +38,6 @@ const employeeSchema = z.object({
 
 type EmployeeFormData = z.infer<typeof employeeSchema>;
 
-// The Employee interface from backend EmployeeResponse
 interface Employee {
   id: number;
   full_name: string;
@@ -48,16 +47,13 @@ interface Employee {
   role?: string;
   barcode?: string;
   joined_date?: string;
+  operation?: string;
+  rate?: number;
   is_active: boolean;
   created_at: string;
   avatar_url?: string;
   settings?: {
     department?: string;
-    operation?: string;
-    rate?: number;
-    total_pieces?: number;
-    completed_pieces?: number;
-    pending_pieces?: number;
   };
 }
 
@@ -137,34 +133,15 @@ export default function EmployeesPage() {
   function openEdit(emp: Employee) {
     setEditingEmployee(emp);
     
-    let op = 'Overlock';
-    let rt = 0;
-    let tot = 0;
-    let comp = 0;
-    let pend = 0;
-    
-    if (emp.avatar_url) {
-      try {
-        const parsed = JSON.parse(emp.avatar_url);
-        op = parsed.operation || parsed.department || 'Overlock';
-        rt = parsed.rate || 0;
-        tot = parsed.total_pieces || parsed.pieces_given || 0;
-        comp = parsed.completed_pieces || parsed.pieces_returned || 0;
-        pend = parsed.pending_pieces || Math.max(0, tot - comp);
-      } catch (e) {
-        op = emp.avatar_url || 'Overlock';
-      }
-    }
-
     reset({
       full_name: emp.full_name || '',
       employee_id: emp.employee_id || '',
       joined_date: emp.joined_date || '',
-      operation: op,
-      rate: rt,
-      total_pieces: tot,
-      completed_pieces: comp,
-      pending_pieces: pend,
+      operation: emp.operation || 'Overlock',
+      rate: emp.rate || 0,
+      total_pieces: 0,
+      completed_pieces: 0,
+      pending_pieces: 0,
     });
     setDialogOpen(true);
   }
@@ -177,15 +154,6 @@ export default function EmployeesPage() {
 
   function onSubmit(values: EmployeeFormData) {
     const fallbackId = Date.now().toString(36);
-    const serializedDept = JSON.stringify({
-      operation: values.operation,
-      rate: Number(values.rate || 0),
-      total_pieces: Number(values.total_pieces || 0),
-      completed_pieces: Number(values.completed_pieces || 0),
-      pending_pieces: Number(values.pending_pieces || 0),
-      department: values.operation
-    });
-
     const payload = { 
       full_name: values.full_name,
       username: editingEmployee?.username || `emp_${fallbackId}`,
@@ -193,9 +161,8 @@ export default function EmployeesPage() {
       role: 'OPERATOR',
       employee_id: values.employee_id || null,
       joined_date: values.joined_date || null,
-      settings: {
-        department: serializedDept
-      }
+      operation: values.operation || 'Overlock',
+      rate: Number(values.rate || 0),
     } as any;
 
     if (editingEmployee) {
@@ -226,15 +193,7 @@ export default function EmployeesPage() {
       header: 'Assigned Operation',
       cell: ({ row }) => {
         const emp = row.original;
-        let opName = 'Overlock';
-        if (emp.avatar_url) {
-          try {
-            const parsed = JSON.parse(emp.avatar_url);
-            opName = parsed.operation || parsed.department || 'Overlock';
-          } catch (e) {
-            opName = emp.avatar_url;
-          }
-        }
+        const opName = emp.operation || 'Overlock';
         return (
           <Badge variant="secondary" className="font-medium bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border-purple-200">
             {opName}
@@ -247,13 +206,7 @@ export default function EmployeesPage() {
       header: 'Rate (₹/pc)',
       cell: ({ row }) => {
         const emp = row.original;
-        let rt = 0;
-        if (emp.avatar_url) {
-          try {
-            const parsed = JSON.parse(emp.avatar_url);
-            rt = parsed.rate || 0;
-          } catch (e) {}
-        }
+        const rt = emp.rate || 0;
         return <span className="font-bold text-slate-700 dark:text-slate-200">₹{rt}</span>;
       },
     },

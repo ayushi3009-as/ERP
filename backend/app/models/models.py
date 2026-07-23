@@ -213,6 +213,8 @@ class User(TimestampMixin, Base):
     employee_id = Column(String(50), nullable=True)
     barcode = Column(String(255), nullable=True)
     joined_date = Column(Date, nullable=True)
+    operation = Column(String(255), nullable=True)
+    rate = Column(Numeric(15, 2), default=0)
 
     sessions = relationship(
         "UserSession",
@@ -381,6 +383,8 @@ class BarcodeScanHistory(FactoryScopedMixin, Base):
     scanned_by = Column(Integer, ForeignKey('users.id'), nullable=True)
     process_stage = Column(String(100), nullable=True)
     remarks = Column(Text, nullable=True)
+    short_qty = Column(Integer, default=0)
+    machine_no = Column(String(50), nullable=True)
 
 class Service(CompanyScopedMixin, Base):
     __tablename__ = 'services'
@@ -397,6 +401,8 @@ class InternalPayment(FactoryScopedMixin, Base):
     id = Column(Integer, primary_key=True, index=True)
     payment_id = Column(String(100), unique=True, nullable=False)
     payment_date = Column(DateTime(timezone=True), default=func.now())
+    employee_id = Column(Integer, ForeignKey('users.id'), nullable=True)
+    machine_no = Column(String(50), nullable=True)
     employee_name = Column(String(200), nullable=False, default='')
     payment_type = Column(String(100), nullable=False)
     amount = Column(Numeric(15, 2), nullable=False, default=0)
